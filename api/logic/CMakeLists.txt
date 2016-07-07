@@ -108,6 +108,8 @@ set(NET_SOURCES
 	net/HttpMetaCache.h
 	net/MetaCacheSink.cpp
 	net/MetaCacheSink.h
+	net/Mirror.cpp
+	net/Mirror.h
 	net/NetAction.h
 	net/NetJob.cpp
 	net/NetJob.h
@@ -118,6 +120,11 @@ set(NET_SOURCES
 	net/URLConstants.h
 	net/Validator.h
 )
+
+add_unit_test(Mirror
+	SOURCES net/Mirror_test.cpp
+	LIBS MultiMC_logic
+	)
 
 # Game launch logic
 set(LAUNCH_SOURCES
