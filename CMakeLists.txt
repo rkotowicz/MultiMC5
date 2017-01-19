@@ -29,7 +29,7 @@ set(CMAKE_JAVA_TARGET_OUTPUT_DIR ${PROJECT_BINARY_DIR}/jars)
 ######## Set compiler flags ########
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 set(CMAKE_C_STANDARD_REQUIRED true)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_STANDARD 11)
 include(GenerateExportHeader)
 set(CMAKE_CXX_FLAGS " -Wall -D_GLIBCXX_USE_CXX11_ABI=0 ${CMAKE_CXX_FLAGS}")
@@ -86,6 +86,20 @@ else()
 set(QUAZIP_LIBRARIES -L"${CMAKE_CURRENT_BINARY_DIR}/External/Install/QuaZIP/lib" quazip)
 endif()
 
+# Add sol2
+find_package(Lua 5.3 REQUIRED)
+set(SOL2_VERSION "2.15.7")
+set(SOL2_DIR "${CMAKE_CURRENT_BINARY_DIR}/sol2/${SOL2_VERSION}")
+set(SOL2_FILE "${SOL2_DIR}/sol.hpp")
+if(NOT EXISTS ${SOL2_FILE})
+	file(DOWNLOAD https://github.com/ThePhD/sol2/releases/download/v${SOL2_VERSION}/sol.hpp ${SOL2_FILE})
+endif()
+add_library(sol2 INTERFACE IMPORTED)
+set_target_properties(sol2 PROPERTIES
+	INTERFACE_INCLUDE_DIRECTORIES ${SOL2_DIR}
+	INTERFACE_LINK_LIBRARIES "${LUA_LIBRARIES}"
+)
+
 option(NBT_BUILD_SHARED "Build NBT shared library" ON)
 option(NBT_USE_ZLIB "Build NBT library with zlib support" OFF)
 option(NBT_BUILD_TESTS "Build NBT library tests" OFF) #FIXME: fix unit tests.
@@ -110,3 +124,4 @@ add_subdirectory(api/gui)
 
 add_subdirectory(application)
 add_subdirectory(wonkoclient)
+add_subdirectory(scripts)

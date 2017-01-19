@@ -9,6 +9,7 @@
 #include "tasks/Task.h"
 #include "wonko/WonkoIndex.h"
 #include <QDebug>
+#include "scripting/ScriptManager.h"
 
 
 class Env::Private
@@ -16,6 +17,7 @@ class Env::Private
 public:
 	QNetworkAccessManager m_qnam;
 	shared_qobject_ptr<HttpMetaCache> m_metacache;
+	shared_qobject_ptr<ScriptManager> m_scripts;
 	std::shared_ptr<IIconList> m_iconlist;
 	QMap<QString, std::shared_ptr<BaseVersionList>> m_versionLists;
 	shared_qobject_ptr<WonkoIndex> m_wonkoIndex;
@@ -31,6 +33,7 @@ static Env * instance;
 Env::Env()
 {
 	d = new Private();
+	d->m_scripts = shared_qobject_ptr<ScriptManager>(new ScriptManager);
 }
 
 Env::~Env()
@@ -56,6 +59,11 @@ void Env::dispose()
 shared_qobject_ptr< HttpMetaCache > Env::metacache()
 {
 	return d->m_metacache;
+}
+
+shared_qobject_ptr<ScriptManager> Env::scripts()
+{
+	return d->m_scripts;
 }
 
 QNetworkAccessManager& Env::qnam() const

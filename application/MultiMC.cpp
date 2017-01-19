@@ -10,6 +10,7 @@
 #include "pages/global/ExternalToolsPage.h"
 #include "pages/global/AccountListPage.h"
 #include "pages/global/PasteEEPage.h"
+#include "pages/global/ScriptPage.h"
 
 #include "themes/ITheme.h"
 #include "themes/SystemTheme.h"
@@ -61,6 +62,8 @@
 #include "translations/TranslationsModel.h"
 
 #include "minecraft/ftb/FTBPlugin.h"
+
+#include "scripting/ScriptManager.h"
 
 #include <Commandline.h>
 #include <FileSystem.h>
@@ -296,6 +299,7 @@ MultiMC::MultiMC(int &argc, char **argv) : QApplication(argc, argv)
 	initInstances();
 	initAccounts();
 	initNetwork();
+	initScripts();
 
 	// now we have network, download translation updates
 	m_translations->downloadIndex();
@@ -529,6 +533,11 @@ void MultiMC::initAnalytics()
 	qDebug() << "Initialized analytics with tid" << BuildConfig.ANALYTICS_ID;
 }
 
+void MultiMC::initScripts()
+{
+	ENV.scripts()->loadScripts(QDir::current().absoluteFilePath(m_settings->get("ScriptsDirectory").toString()));
+}
+
 void MultiMC::shutdownAnalytics()
 {
 	if(m_analytics)
@@ -585,6 +594,10 @@ void MultiMC::initAccounts()
 void MultiMC::initGlobalSettings()
 {
 	m_settings.reset(new INISettingsObject("multimc.cfg", this));
+
+	// Scripting
+	m_settings->registerSetting("ScriptsDirectory", "scripts");
+
 	// Updates
 	m_settings->registerSetting("UpdateChannel", BuildConfig.VERSION_CHANNEL);
 	m_settings->registerSetting("AutoUpdate", true);
@@ -727,6 +740,7 @@ void MultiMC::initGlobalSettings()
 		m_globalSettingsProvider->addPage<ExternalToolsPage>();
 		m_globalSettingsProvider->addPage<AccountListPage>();
 		m_globalSettingsProvider->addPage<PasteEEPage>();
+		m_globalSettingsProvider->addPage<ScriptPage>();
 	}
 }
 

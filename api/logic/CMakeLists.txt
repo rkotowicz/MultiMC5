@@ -459,6 +459,31 @@ add_unit_test(WonkoIndex
 	LIBS MultiMC_logic
 	)
 
+set(SCRIPTING_SOURCES
+	# Scripting support
+	scripting/ScriptEntityVersionList.cpp
+	scripting/ScriptEntityVersionList.h
+	scripting/ScriptEntityVersion.cpp
+	scripting/ScriptEntityVersion.h
+	scripting/Script.cpp
+	scripting/Script.h
+	scripting/ScriptManager.cpp
+	scripting/ScriptManager.h
+	scripting/EntityProvider.cpp
+	scripting/EntityProvider.h
+	scripting/EntityProviderManager.cpp
+	scripting/EntityProviderManager.h
+	scripting/EntityProviderModel.cpp
+	scripting/EntityProviderModel.h
+	scripting/LuaUtil.cpp
+	scripting/LuaUtil.h
+	scripting/LuaFwd.h
+)
+add_unit_test(LuaUtil
+	SOURCES scripting/LuaUtil_test.cpp
+	LIBS MultiMC_logic
+)
+
 ################################ COMPILE ################################
 
 # we need zlib
@@ -482,6 +507,7 @@ set(LOGIC_SOURCES
 	${TOOLS_SOURCES}
 	${WONKO_SOURCES}
 	${ICONS_SOURCES}
+	${SCRIPTING_SOURCES}
 )
 
 add_library(MultiMC_logic SHARED ${LOGIC_SOURCES})
@@ -490,7 +516,7 @@ set_target_properties(MultiMC_logic PROPERTIES CXX_VISIBILITY_PRESET hidden VISI
 generate_export_header(MultiMC_logic)
 
 # Link
-target_link_libraries(MultiMC_logic xz-embedded unpack200 systeminfo ${QUAZIP_LIBRARIES} ${NBT_NAME} ${ZLIB_LIBRARIES})
+target_link_libraries(MultiMC_logic xz-embedded unpack200 systeminfo sol2 ${QUAZIP_LIBRARIES} ${NBT_NAME} ${ZLIB_LIBRARIES})
 qt5_use_modules(MultiMC_logic Core Xml Network Concurrent)
 add_dependencies(MultiMC_logic QuaZIP)
 

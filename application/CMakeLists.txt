@@ -194,6 +194,8 @@ SET(MULTIMC_SOURCES
 	pages/global/PasteEEPage.h
 	pages/global/WonkoPage.cpp
 	pages/global/WonkoPage.h
+	pages/global/ScriptPage.cpp
+	pages/global/ScriptPage.h
 
 	# GUI - dialogs
 	dialogs/AboutDialog.cpp
@@ -228,6 +230,8 @@ SET(MULTIMC_SOURCES
 	dialogs/VersionSelectDialog.h
 	dialogs/SkinUploadDialog.cpp
 	dialogs/SkinUploadDialog.h
+	dialogs/EntitySelectionDialog.cpp
+	dialogs/EntitySelectionDialog.h
 
 	# GUI - widgets
 	widgets/Common.cpp
@@ -293,6 +297,7 @@ SET(MULTIMC_UIS
 	pages/global/ProxyPage.ui
 	pages/global/PasteEEPage.ui
 	pages/global/WonkoPage.ui
+	pages/global/ScriptPage.ui
 
 	# Dialogs
 	dialogs/CopyInstanceDialog.ui
@@ -307,6 +312,7 @@ SET(MULTIMC_UIS
 	dialogs/UpdateDialog.ui
 	dialogs/NotificationDialog.ui
 	dialogs/SkinUploadDialog.ui
+	dialogs/EntitySelectionDialog.ui
 
 	# Widgets/other
 	widgets/MCModInfoFrame.ui

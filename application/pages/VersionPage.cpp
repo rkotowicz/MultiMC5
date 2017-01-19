@@ -25,6 +25,7 @@
 #include "dialogs/CustomMessageBox.h"
 #include "dialogs/VersionSelectDialog.h"
 #include "dialogs/ModEditDialogCommon.h"
+#include "dialogs/EntitySelectionDialog.h"
 
 #include "dialogs/ProgressDialog.h"
 #include <GuiUtil.h>
@@ -46,6 +47,8 @@
 #include "minecraft/MinecraftVersionList.h"
 #include "icons/IconList.h"
 #include "Exception.h"
+#include "scripting/EntityProviderManager.h"
+#include "scripting/ScriptManager.h"
 
 #include "MultiMC.h"
 
@@ -373,6 +376,32 @@ int VersionPage::doUpdate()
 	updateButtons();
 	m_container->refreshContainer();
 	return ret;
+}
+
+void VersionPage::on_installBtn_clicked()
+{
+	EntitySelectionDialog selDialog(this);
+	if (selDialog.exec() != EntitySelectionDialog::Accepted)
+	{
+		return;
+	}
+	const EntityProvider::Entity entity = selDialog.entity();
+	if (entity.isNull())
+	{
+		return;
+	}
+	VersionSelectDialog verDialog(entity.versionList().get(), tr("Select version for %1").arg(entity.name), this);
+	verDialog.setExactFilter(BaseVersionList::ParentGameVersionRole, m_inst->currentVersionId());
+	verDialog.setEmptyString(tr("No %1 versions are current available for Minecraft %2").arg(entity.name, m_inst->currentVersionId()));
+	verDialog.setEmptyErrorString(tr("Couldn't load or download the %1 version lists!").arg(entity.name));
+	if (verDialog.exec() != VersionSelectDialog::Accepted || !verDialog.selectedVersion())
+	{
+		return;
+	}
+	auto task = ENV.scripts()->entityProviderManager()->createInstallTask(m_inst, verDialog.selectedVersion());
+	ProgressDialog(this).execWithTask(task);
+	preselect(m_profile->rowCount()-1);
+	m_container->refreshContainer();
 }
 
 void VersionPage::on_forgeBtn_clicked()

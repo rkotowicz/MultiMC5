@@ -14,6 +14,7 @@ class HttpMetaCache;
 class BaseVersionList;
 class BaseVersion;
 class WonkoIndex;
+class ScriptManager;
 
 #if defined(ENV)
 	#undef ENV
@@ -34,6 +35,8 @@ public:
 	QNetworkAccessManager &qnam() const;
 
 	shared_qobject_ptr<HttpMetaCache> metacache();
+
+	shared_qobject_ptr<ScriptManager> scripts();
 
 	std::shared_ptr<IIconList> icons();
 

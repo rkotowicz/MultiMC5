@@ -183,6 +183,7 @@ private:
 	void initAccounts();
 	void initMCEdit();
 	void initAnalytics();
+	void initScripts();
 	void shutdownAnalytics();
 	void performMainStartupAction();
 

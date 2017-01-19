@@ -158,6 +158,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="installBtn">
+           <property name="text">
+            <string>Install...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="forgeBtn">
            <property name="toolTip">
             <string>Install the Minecraft Forge package.</string>

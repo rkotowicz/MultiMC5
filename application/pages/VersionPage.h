@@ -50,6 +50,7 @@ public:
 	virtual void setParentContainer(BasePageContainer *) override;
 
 private slots:
+	void on_installBtn_clicked();
 	void on_forgeBtn_clicked();
 	void on_liteloaderBtn_clicked();
 	void on_reloadBtn_clicked();
