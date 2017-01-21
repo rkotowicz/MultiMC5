@@ -14,6 +14,7 @@
 
 QVector<EntityProvider::Entity> convert(const sol::table &in, EntityProvider *provider)
 {
+
 	QVector<EntityProvider::Entity> out;
 	for (const auto &pair : in)
 	{
@@ -21,7 +22,8 @@ QVector<EntityProvider::Entity> convert(const sol::table &in, EntityProvider *pr
 		out.append(EntityProvider::Entity{
 									provider,
 									LuaUtil::requiredString(table, "id"),
-									LuaUtil::requiredString(table, "name")
+									LuaUtil::requiredString(table, "name"),
+									LuaUtil::optionalString(table, "icon_url")
 								});
 	}
 	return out;
@@ -32,10 +34,20 @@ EntityProvider::EntityProvider(const sol::table &table, Script *script)
 {
 	m_id = LuaUtil::requiredString(table, "id");
 
-	m_staticEntities = convert(LuaUtil::optional<sol::table>(table, "static_entities"), this);
+	if (table["static_entities"])
+	{
+		m_staticEntities = convert(LuaUtil::required<sol::table>(table, "static_entities"), this);
+	}
 
-	auto internalUpdateFunc = LuaUtil::optional<std::function< sol::table(sol::table) >>(table, "dynamic_entities");
-	m_entitiesUpdateFunc = [this, internalUpdateFunc](const sol::table &ctxt) { return convert(internalUpdateFunc(ctxt), this); };
+	auto internalUpdateFunc = LuaUtil::optional<sol::protected_function>(table, "dynamic_entities");
+	m_entitiesUpdateFunc = [this, internalUpdateFunc](const sol::table &ctxt)
+	{
+		if (internalUpdateFunc)
+		{
+			return convert(internalUpdateFunc(ctxt), this);
+		}
+		return QVector<Entity>();
+	};
 
 	if (m_staticEntities.isEmpty() && !internalUpdateFunc)
 	{

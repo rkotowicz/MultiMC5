@@ -1,8 +1,14 @@
 #include "EntityProviderModel.h"
 
+#include <QDebug>
+
 #include "EntityProviderManager.h"
 #include "BaseVersion.h"
 #include "BaseVersionList.h"
+
+#ifdef WITH_MODELTEST
+#include <modeltest.h>
+#endif
 
 struct BaseNode
 {
@@ -48,7 +54,14 @@ bool BaseNode::isVersionNode() const { return !!dynamic_cast<const VersionNode *
 
 
 EntityProviderModel::EntityProviderModel(EntityProviderManager *manager)
-	: QAbstractItemModel(manager), m_manager(manager), m_base(new RootNode) {}
+	: QAbstractItemModel(manager), m_manager(manager), m_base(new RootNode)
+{
+#ifdef WITH_MODELTEST
+	new ModelTest(this, this);
+	Q_ASSERT(node(QModelIndex()) == m_base);
+	Q_ASSERT(indexFor(m_base) == QModelIndex());
+#endif
+}
 
 EntityProviderModel::~EntityProviderModel()
 {
@@ -57,6 +70,10 @@ EntityProviderModel::~EntityProviderModel()
 
 QModelIndex EntityProviderModel::index(int row, int column, const QModelIndex &parent) const
 {
+	if (row < 0 || row >= rowCount(parent) || column < 0 || column >= columnCount(parent))
+	{
+		return QModelIndex();
+	}
 	return createIndex(row, column, node(parent)->children.at(row));
 }
 QModelIndex EntityProviderModel::parent(const QModelIndex &child) const
@@ -88,6 +105,10 @@ QVariant EntityProviderModel::data(const QModelIndex &index, int role) const
 		if (role == Qt::DisplayRole && index.column() == 0)
 		{
 			return static_cast<EntityNode *>(n)->entity.name;
+		}
+		else if (role == Qt::DecorationRole && index.column() == 0)
+		{
+			return static_cast<EntityNode *>(n)->entity.iconUrl;
 		}
 		else if (role == Qt::ToolTipRole)
 		{
@@ -190,10 +211,13 @@ void EntityProviderModel::notifyAfterProviderAdd(EntityProvider *provider)
 
 	connect(provider, &EntityProvider::beforeEntitiesUpdate, this, [this, node, provider]()
 	{
-		beginRemoveRows(indexFor(node), 0, node->children.size()-1);
-		qDeleteAll(node->children);
-		node->children.clear();
-		endRemoveRows();
+		if (!node->children.isEmpty())
+		{
+			beginRemoveRows(indexFor(node), 0, node->children.size()-1);
+			qDeleteAll(node->children);
+			node->children.clear();
+			endRemoveRows();
+		}
 	});
 	connect(provider, &EntityProvider::afterEntitiesUpdate, this, [this, node, provider, setupVersionList]()
 	{

@@ -49,15 +49,20 @@ static QString requiredString(const Table &table, const std::string &key)
 template <typename T, typename Table>
 static T optional(const Table &table, const std::string &key)
 {
-	auto opt = table[key];
-	if (!opt.valid())
+	sol::optional<T> opt = table[key];
+	if (!opt)
 	{
 		return T{};
 	}
 	else
 	{
-		return opt;
+		return opt.value();
 	}
+}
+template <typename Table>
+static QString optionalString(const Table &table, const std::string &key)
+{
+	return QString::fromStdString(optional<std::string, Table>(table, key));
 }
 
 /// Only checks the type of the first key

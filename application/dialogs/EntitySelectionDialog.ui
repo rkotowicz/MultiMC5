@@ -19,6 +19,9 @@
      <property name="rootIsDecorated">
       <bool>false</bool>
      </property>
+     <attribute name="headerDefaultSectionSize">
+      <number>200</number>
+     </attribute>
     </widget>
    </item>
    <item>

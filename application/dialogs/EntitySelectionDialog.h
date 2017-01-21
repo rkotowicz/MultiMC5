@@ -8,6 +8,8 @@ namespace Ui {
 class EntitySelectionDialog;
 }
 
+class IconUrlProxyModel;
+
 class EntitySelectionDialog : public QDialog
 {
 	Q_OBJECT
@@ -23,4 +25,5 @@ protected:
 
 private:
 	Ui::EntitySelectionDialog *ui;
+	IconUrlProxyModel *m_proxy;
 };

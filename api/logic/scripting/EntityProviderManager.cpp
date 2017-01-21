@@ -38,6 +38,10 @@ public:
 		{
 			return entity.internalId;
 		}
+		else if (role == Qt::DecorationRole && index.column() == 0)
+		{
+			return entity.iconUrl;
+		}
 		return QVariant();
 	}
 	QVariant headerData(int section, Qt::Orientation orientation, int role) const override

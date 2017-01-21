@@ -28,7 +28,8 @@ ScriptEntityVersionList::ScriptEntityVersionList(const sol::table &table, const 
 		const sol::table table = rolesTable.value();
 		for (auto it = mapping.cbegin(); it != mapping.cend(); ++it)
 		{
-			if (table[it.value()].valid())
+			const sol::optional<sol::object> field = table[it.value()];
+			if (field)
 			{
 				m_roles.append(it.key());
 			}
@@ -42,7 +43,7 @@ Task *ScriptEntityVersionList::getLoadTask()
 	{
 		auto internalFunc = LuaUtil::required<sol::protected_function>(m_table, "load");
 		sol::protected_function_result rawResult = internalFunc(task->taskContext());
-		if (!rawResult.valid())
+		if (!rawResult.valid() || !rawResult.get<sol::optional<sol::table>>())
 		{
 			const sol::error err = rawResult;
 			throw Exception(QString("Unable to load versions for %1-%2: %3").arg(m_provider->id(), m_entity.internalId, err.what()));

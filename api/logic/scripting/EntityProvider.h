@@ -23,6 +23,7 @@ public:
 		EntityProvider *provider;
 		QString internalId;
 		QString name;
+		QString iconUrl;
 
 		bool isNull() const { return internalId.isNull(); }
 		std::shared_ptr<BaseVersionList> versionList() const { return provider->versionList(*this); }

@@ -4,12 +4,15 @@ name = "LiteLoader"
 author = "MultiMC authors"
 id = "org.multimc.liteloader"
 
-url = "http://dl.liteloader.com/versions/versions.json"
-
 register_entity_provider({
-	id = "liteloader.com",
+	id = "com.liteloader",
 	static_entities = {
-		{ id = "liteloader", name = "LiteLoader" }
+		{
+			id = "liteloader",
+			name = "LiteLoader",
+			icon_url = "http://www.liteloader.com/favicon.ico",
+			author = "Mumfrey"
+		}
 	},
 	version_list_factory = function(id)
 		return {
@@ -19,7 +22,7 @@ register_entity_provider({
 				latest = "latest"
 			},
 			load = function(ctxt)
-				local data = ctxt.from_json(ctxt.http.get(url))
+				local data = ctxt.from_json(ctxt.http.get("http://dl.liteloader.com/versions/versions.json"))
 
 				local description = data.meta.description
 				local defaultUrl = data.meta.url
@@ -138,3 +141,41 @@ register_entity_provider({
 		}
 	end
 })
+
+-- no structured access to versions and downloads (just links to mcf), skip for now
+if false then
+	register_entity_provider({
+		id = "com.liteloader.mods",
+		dynamic_entities = function(ctxt)
+			data = ctxt.http.get("http://www.liteloader.com/mods")
+			matchIt = ctxt.regex_many(
+				"<table class=\"modtable\".*?<h2><a .*?\\/mod\\/(?<id>[^\"]*)\">(?<name>[^<]*).*?<a class=\"author\".*?>(?<author>[^<]*).*?<img class=\"thumb\" src=\"(?<icon>[^\"]*)\".*?<\\/table>",
+				data:gsub("\n", ""))
+			entities = {}
+			while matchIt.has_next() do
+				match = matchIt.next()
+				table.insert(entities, {
+					id = match.captured("id"),
+					name = match.captured("name"),
+					icon_url = "http://www.liteloader.com" .. match.captured("icon"),
+					author = match.captured("author")
+				})
+			end
+			return entities
+		end,
+		version_list_factory = function(id)
+			return {
+				roles = {
+				},
+				load = function(ctxt)
+					local versions = {}
+					return versions
+				end,
+				comparator = function(ctxt, a, b)
+				end,
+				install = function(ctxt, version)
+				end
+			}
+		end
+	})
+end

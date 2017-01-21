@@ -11,27 +11,28 @@
 #include "scripting/EntityProviderManager.h"
 #include "scripting/EntityProvider.h"
 #include "dialogs/ProgressDialog.h"
+#include "IconUrlProxyModel.h"
 
 
 ScriptPage::ScriptPage(QWidget *parent) :
 	QWidget(parent),
-	ui(new Ui::ScriptPage)
+	ui(new Ui::ScriptPage),
+	m_proxy(new IconUrlProxyModel(this))
 {
 	ui->setupUi(this);
 
 	ui->scriptsView->setModel(ENV.scripts().get());
-	ui->providersView->setModel(ENV.scripts()->entityProviderManager()->infoModel());
+
+	m_proxy->setSourceModel(ENV.scripts()->entityProviderManager()->infoModel());
+	ui->providersView->setModel(m_proxy);
 
 	connect(ui->scriptsView->selectionModel(), &QItemSelectionModel::currentRowChanged, this, [this](const QModelIndex &newRow)
 	{
-		if (ui->scriptsView->currentIndex().isValid())
-		{
-			ui->reloadBtn->setEnabled(true);
-		}
-		else
-		{
-			ui->reloadBtn->setEnabled(false);
-		}
+		ui->reloadBtn->setEnabled(newRow.isValid());
+	});
+	connect(ui->providersView->selectionModel(), &QItemSelectionModel::currentRowChanged, this, [this](const QModelIndex &newRow)
+	{
+		ui->updateProviderBtn->setEnabled(newRow.isValid());
 	});
 }
 
@@ -95,13 +96,14 @@ void ScriptPage::on_updateAllProvidersBtn_clicked()
 }
 void ScriptPage::on_updateProviderBtn_clicked()
 {
-	EntityProvider *provider = ENV.scripts()->entityProviderManager()->providerForIndex(ui->providersView->currentIndex());
+	const QModelIndex index = m_proxy->mapToSource(ui->providersView->currentIndex());
+	EntityProvider *provider = ENV.scripts()->entityProviderManager()->providerForIndex(index);
 	if (provider)
 	{
 		ProgressDialog(this).execWithTask(provider->createUpdateEntitiesTask());
 	}
 
-	EntityProvider::Entity entity = ENV.scripts()->entityProviderManager()->entityForIndex(ui->providersView->currentIndex());
+	EntityProvider::Entity entity = ENV.scripts()->entityProviderManager()->entityForIndex(index);
 	if (!entity.internalId.isNull())
 	{
 		ProgressDialog(this).execWithTask(entity.provider->versionList(entity)->getLoadTask());

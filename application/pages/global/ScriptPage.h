@@ -8,6 +8,8 @@ namespace Ui {
 class ScriptPage;
 }
 
+class IconUrlProxyModel;
+
 class ScriptPage : public QWidget, public BasePage
 {
 	Q_OBJECT
@@ -31,4 +33,5 @@ protected:
 
 private:
 	Ui::ScriptPage *ui;
+	IconUrlProxyModel *m_proxy;
 };

@@ -1,6 +1,7 @@
 #include "Script.h"
 
 #include <QEventLoop>
+#include <QRegularExpression>
 
 #include "FileSystem.h"
 #include "LuaUtil.h"
@@ -113,17 +114,46 @@ static void solDebug(const sol::object &obj)
 {
 	switch (obj.get_type())
 	{
-	case sol::type::string: qDebug() << QString::fromStdString(obj.as<std::string>()); break;
-	case sol::type::boolean: qDebug() << obj.as<bool>(); break;
-	case sol::type::number: qDebug() << obj.as<double>(); break;
-	case sol::type::table: qDebug() << LuaUtil::toVariantHash(obj.as<sol::table>()); break;
-	case sol::type::function: qDebug() << "sol::function()"; break;
-	case sol::type::nil: qDebug() << "sol::nil()"; break;
-	case sol::type::none: qDebug() << "sol::none()"; break;
-	case sol::type::thread: qDebug() << "sol::thread()"; break;
-	case sol::type::userdata: qDebug() << "sol::userdata()"; break;
-	default: qDebug() << "sol::object()"; break;
+	case sol::type::string: qDebug() << "lua:" << QString::fromStdString(obj.as<std::string>()); break;
+	case sol::type::boolean: qDebug() << "lua:" << obj.as<bool>(); break;
+	case sol::type::number: qDebug() << "lua:" << obj.as<double>(); break;
+	case sol::type::table: qDebug() << "lua:" << LuaUtil::toVariantHash(obj.as<sol::table>()); break;
+	case sol::type::function: qDebug() << "lua:" << "sol::function()"; break;
+	case sol::type::nil: qDebug() << "lua:" << "sol::nil()"; break;
+	case sol::type::none: qDebug() << "lua:" << "sol::none()"; break;
+	case sol::type::thread: qDebug() << "lua:" << "sol::thread()"; break;
+	case sol::type::userdata: qDebug() << "lua:" << "sol::userdata()"; break;
+	default: qDebug() << "lua:" << "sol::object()"; break;
 	}
+}
+static sol::object solRegexMatch(const QRegularExpressionMatch &match, sol::this_state state)
+{
+	if (match.hasMatch())
+	{
+		return sol::table::create_with(state.L,
+									   "captured", sol::as_function(
+										   [match](const std::string &name) { return match.captured(QString::fromStdString(name)).toStdString(); }),
+									   "length", match.lastCapturedIndex()+1);
+	}
+	else
+	{
+		return sol::nil;
+	}
+}
+
+static sol::object solRegexOne(const std::string &regex, const std::string &string, sol::this_state state)
+{
+	const QRegularExpression re(QString::fromStdString(regex));
+	const QRegularExpressionMatch match = re.match(QString::fromStdString(string));
+	return solRegexMatch(match, state);
+}
+static sol::object solRegexMany(const std::string &regex, const std::string &string, sol::this_state state)
+{
+	const QRegularExpression re(QString::fromStdString(regex), QRegularExpression::MultilineOption);
+	auto it = std::make_shared<QRegularExpressionMatchIterator>(re.globalMatch(QString::fromStdString(string)));
+	return sol::table::create_with(state.L,
+								   "next", sol::as_function([it, state]() { return solRegexMatch(it->next(), state); }),
+								   "has_next", sol::as_function([it]() { return it->hasNext(); }));
 }
 
 sol::table ScriptTask::taskContext()
@@ -234,6 +264,8 @@ sol::table ScriptTask::taskContext()
 sol::table Script::staticContext()
 {
 	return m_lua->create_table_with(
-				"debug", sol::as_function(&solDebug)
+				"debug", sol::as_function(&solDebug),
+				"regex_one", sol::as_function(&solRegexOne),
+				"regex_many", sol::as_function(&solRegexMany)
 				);
 }

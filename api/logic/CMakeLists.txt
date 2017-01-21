@@ -75,6 +75,10 @@ set(CORE_SOURCES
 	# A Recursive file system watcher
 	RecursiveFileSystemWatcher.h
 	RecursiveFileSystemWatcher.cpp
+
+	# A proxy model that converts urls to icons
+	IconUrlProxyModel.h
+	IconUrlProxyModel.cpp
 )
 
 add_unit_test(FileSystem
@@ -519,6 +523,11 @@ generate_export_header(MultiMC_logic)
 target_link_libraries(MultiMC_logic xz-embedded unpack200 systeminfo sol2 ${QUAZIP_LIBRARIES} ${NBT_NAME} ${ZLIB_LIBRARIES})
 qt5_use_modules(MultiMC_logic Core Xml Network Concurrent)
 add_dependencies(MultiMC_logic QuaZIP)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	target_link_libraries(MultiMC_logic modeltest)
+	target_compile_definitions(MultiMC_logic PRIVATE WITH_MODELTEST)
+endif()
 
 # Mark and export headers
 target_include_directories(MultiMC_logic PUBLIC "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" PRIVATE "${ZLIB_INCLUDE_DIRS}")

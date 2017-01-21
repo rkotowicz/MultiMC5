@@ -123,8 +123,6 @@ QJsonObject LuaUtil::toJsonObject(const sol::table &table)
 
 bool LuaUtil::isMap(const sol::table &table)
 {
-	static bool nodebug = false;
-
 	if (table.cbegin() == table.cend())
 	{
 		return false; // ouch, no way to tell, assume it isn't

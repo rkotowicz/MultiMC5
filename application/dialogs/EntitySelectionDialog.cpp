@@ -1,18 +1,30 @@
 #include "EntitySelectionDialog.h"
 #include "ui_EntitySelectionDialog.h"
 
+#include <QPushButton>
+
+#include "dialogs/ProgressDialog.h"
 #include "scripting/EntityProviderManager.h"
 #include "scripting/ScriptManager.h"
+#include "IconUrlProxyModel.h"
+#include "tasks/Task.h"
 #include "Env.h"
 
 EntitySelectionDialog::EntitySelectionDialog(QWidget *parent) :
 	QDialog(parent),
-	ui(new Ui::EntitySelectionDialog)
+	ui(new Ui::EntitySelectionDialog),
+	m_proxy(new IconUrlProxyModel(this))
 {
 	ui->setupUi(this);
 
+	m_proxy->setSourceModel(ENV.scripts()->entityProviderManager()->entitiesModel());
+	ui->treeView->setModel(m_proxy);
 	ui->buttonBox->addButton(tr("Install"), QDialogButtonBox::AcceptRole);
-	ui->treeView->setModel(ENV.scripts()->entityProviderManager()->entitiesModel());
+	QPushButton *refreshBtn = ui->buttonBox->addButton(tr("Refresh"), QDialogButtonBox::ActionRole);
+	connect(refreshBtn, &QPushButton::clicked, this, [this]()
+	{
+		ProgressDialog(this).execWithTask(ENV.scripts()->entityProviderManager()->createUpdateAllTask());
+	});
 
 	connect(ui->treeView, &QTreeView::doubleClicked, [this](const QModelIndex &index)
 	{
@@ -21,6 +33,9 @@ EntitySelectionDialog::EntitySelectionDialog(QWidget *parent) :
 			accept();
 		}
 	});
+
+	// simulate click to refresh
+	QMetaObject::invokeMethod(refreshBtn, "click", Qt::QueuedConnection);
 }
 
 EntitySelectionDialog::~EntitySelectionDialog()
