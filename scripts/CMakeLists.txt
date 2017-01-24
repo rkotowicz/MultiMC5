@@ -1,6 +1,7 @@
 set(SCRIPTS
 	liteloader.lua
 	forge.lua
+	curse.lua
 )
 
 foreach(script ${SCRIPTS})

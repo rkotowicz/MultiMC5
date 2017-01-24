@@ -62,6 +62,8 @@ if (Qt5_POSITION_INDEPENDENT_CODE)
     SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
+find_package(BZip2 REQUIRED)
+
 ################################ Included Libs ################################
 
 include(ExternalProject)

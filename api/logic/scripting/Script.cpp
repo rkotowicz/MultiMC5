@@ -2,6 +2,8 @@
 
 #include <QEventLoop>
 #include <QRegularExpression>
+#include <bzlib.h>
+#include <stdio.h>
 
 #include "FileSystem.h"
 #include "LuaUtil.h"
@@ -333,6 +335,39 @@ sol::table ScriptTask::taskContext()
 									   "read", sol::as_function([readBinary](const std::string &filename) { return QString::fromUtf8(readBinary(filename)).toStdString(); }),
 									   "readb", sol::as_function(readBinary));
 	};
+	auto readBzip2 = [](const std::string &filename, const std::string &path)
+	{
+		QFile file(QString::fromStdString(filename));
+		if (!file.open(QFile::ReadOnly))
+		{
+			throw Exception(QStringLiteral("Unable top open BZip2 file %1: %2").arg(file.fileName(), file.errorString()));
+		}
+		int bzerror;
+		FILE *f = fdopen(file.handle(), "r");
+		BZFILE *bz = BZ2_bzReadOpen(&bzerror, f, 0, 0, NULL, 0);
+		if (bzerror != BZ_OK)
+		{
+			BZ2_bzReadClose(&bzerror, bz);
+			fclose(f);
+			throw Exception(QStringLiteral("Unable to open BZip2 file %1").arg(file.fileName()));
+		}
+		QByteArray data;
+		char buf[4096];
+		while (bzerror == BZ_OK)
+		{
+			int actualSize = BZ2_bzRead(&bzerror, bz, buf, 4096);
+			data.append(QByteArray::fromRawData(buf, actualSize));
+		}
+		if (bzerror != BZ_STREAM_END)
+		{
+			BZ2_bzReadClose(&bzerror, bz);
+			fclose(f);
+			throw Exception(QStringLiteral("Unable to read BZip2 file %1").arg(file.fileName()));
+		}
+		BZ2_bzReadClose(&bzerror, bz);
+		fclose(f);
+		return data.toStdString();
+	};
 
 	sol::state *lua = m_script->m_lua;
 	sol::table ctxt = m_script->staticContext();
@@ -353,6 +388,7 @@ sol::table ScriptTask::taskContext()
 	ctxt["verify_onesix_library_format"] = sol::as_function(verifyOneSixLibraryFormat);
 	ctxt["verify_onesix_version_format"] = sol::as_function(verifyOneSixVersionFormat);
 	ctxt["zip"] = sol::as_function(openZip);
+	ctxt["bzip2"] = sol::as_function(readBzip2);
 	ctxt["fs"] = lua->create_table_with();
 	ctxt["from_json"] = sol::as_function([lua](const std::string &json) { return LuaUtil::fromJson(*lua, json); });
 	ctxt["to_json"] = sol::as_function(&LuaUtil::toJson);

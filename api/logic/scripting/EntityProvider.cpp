@@ -17,7 +17,6 @@
 
 QVector<EntityProvider::Entity> convert(const sol::table &in, EntityProvider *provider)
 {
-
 	QVector<EntityProvider::Entity> out;
 	for (const auto &pair : in)
 	{
@@ -47,7 +46,11 @@ EntityProvider::EntityProvider(const sol::table &table, Script *script)
 	{
 		if (internalUpdateFunc)
 		{
-			return convert(internalUpdateFunc(ctxt), this);
+			const sol::object data = internalUpdateFunc(ctxt);
+			if (data && data.is<sol::table>())
+			{
+				return convert(data, this);
+			}
 		}
 		return QVector<Entity>();
 	};
