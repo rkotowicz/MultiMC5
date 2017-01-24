@@ -128,14 +128,17 @@ register_entity_provider({
 				return a.timestamp < b.timestamp
 			end,
 			install = function(ctxt, version)
+				ctxt.patch.remove_if_exists()
+
 				local data = {
 					order = 10,
-					mainClass = "net.minecraft.launchwrapper.Launch"
+					mainClass = "net.minecraft.launchwrapper.Launch",
+					mcVersion = version.mcVersion
 				}
 				data["+tweakers"] = {version.tweakClass}
 				data["+libraries"] = version.libraries
 				ctxt.debug("Writing patch...")
-				ctxt.write_patch(data)
+				ctxt.patch.write(data)
 				ctxt.reload()
 			end
 		}

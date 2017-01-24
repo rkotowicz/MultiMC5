@@ -15,7 +15,13 @@ struct BaseNode
 	virtual ~BaseNode()
 	{
 		qDeleteAll(children);
+		if (onDelete)
+		{
+			onDelete(this);
+		}
 	}
+
+	std::function<void(BaseNode *)> onDelete;
 
 	BaseNode *parent = nullptr;
 	QVector<BaseNode *> children;
@@ -134,6 +140,13 @@ void EntityProviderModel::notifyAfterProviderAdd(EntityProvider *provider)
 	auto setupVersionList = [this](EntityNode *node)
 	{
 		node->versionList = node->entity.provider->versionList(node->entity);
+		node->onDelete = std::function<void(BaseNode *)>([this, node](BaseNode *)
+		{
+			if (node->versionList)
+			{
+				disconnect(node->versionList.get(), 0, this, 0);
+			}
+		});
 
 		auto addAllVersions = [this, node]()
 		{

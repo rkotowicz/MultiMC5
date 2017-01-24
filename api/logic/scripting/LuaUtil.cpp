@@ -56,7 +56,7 @@ QVariant LuaUtil::toVariant(const sol::object &object)
 	}
 }
 
-sol::table LuaUtil::fromJson(sol::state &state, const QJsonObject &obj)
+sol::table LuaUtil::fromJson(sol::state_view &state, const QJsonObject &obj)
 {
 	sol::table table = state.create_table(0, obj.size());
 	for (auto it = obj.constBegin(); it != obj.constEnd(); ++it)
@@ -77,7 +77,7 @@ sol::table LuaUtil::fromJson(sol::state &state, const QJsonObject &obj)
 	}
 	return table;
 }
-sol::table LuaUtil::fromJson(sol::state &state, const QJsonArray &arr)
+sol::table LuaUtil::fromJson(sol::state_view &state, const QJsonArray &arr)
 {
 	sol::table table = state.create_table(arr.size(), 0);
 	for (int i = 0; i < arr.size(); ++i)
@@ -97,7 +97,7 @@ sol::table LuaUtil::fromJson(sol::state &state, const QJsonArray &arr)
 	}
 	return table;
 }
-sol::table LuaUtil::fromJson(sol::state &state, const std::string &json)
+sol::table LuaUtil::fromJson(sol::state_view &state, const std::string &json)
 {
 	const QJsonDocument doc = Json::requireDocument(QByteArray::fromStdString(json));
 

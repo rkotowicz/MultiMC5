@@ -82,7 +82,7 @@ int ProgressDialog::execWithTask(Task *task)
 	// if this didn't connect to an already running task, invoke start
 	if(!task->isRunning())
 	{
-		task->start();
+		QMetaObject::invokeMethod(task, "start", Qt::QueuedConnection);
 	}
 	if(task->isRunning())
 	{

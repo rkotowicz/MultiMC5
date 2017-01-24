@@ -16,8 +16,6 @@ public:
 	bool isLoaded() override { return m_loaded; }
 	const BaseVersionPtr at(int i) const override;
 	int count() const override;
-	BaseVersionPtr getLatestStable() const override;
-	BaseVersionPtr getRecommended() const override;
 	void sortVersions() override;
 
 	bool compareLessThan(const ScriptEntityVersion *a, const ScriptEntityVersion *b);

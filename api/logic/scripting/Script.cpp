@@ -13,11 +13,26 @@
 #include "net/NetJob.h"
 #include "Json.h"
 #include "Env.h"
+#include "minecraft/GradleSpecifier.h"
+#include "minecraft/onesix/OneSixVersionFormat.h"
+#include "quazip.h"
+#include "quazipfile.h"
 
 Script::Script(const QString &filename, QObject *parent)
 	: QObject(parent), m_lua(new sol::state), m_filename(filename)
 {
 	m_lua->open_libraries(sol::lib::base, sol::lib::string, sol::lib::table, sol::lib::math);
+	m_lua->set_function("has_value", [](const sol::table &table, const sol::object &obj)
+	{
+		for (const auto &pair : table)
+		{
+			if (pair.second == obj)
+			{
+				return true;
+			}
+		}
+		return false;
+	});
 	m_lua->set_function("register_entity_provider", [this](const sol::table &table)
 	{
 		EntityProvider *ep = new EntityProvider(table, this);
@@ -44,7 +59,7 @@ void Script::load()
 	// TODO sandboxing: http://lua-users.org/wiki/SandBoxes
 	// additionally only paths on the file system "that make sense" should be accessible to the script
 
-	sol::load_result script = m_lua->load(FS::read(m_filename).toStdString());
+	sol::load_result script = m_lua->load_file(m_filename.toStdString());
 	if (!script.valid()) {
 		const sol::error err = script;
 		throw ScriptLoadException(QString("Unable to load %1: %2").arg(m_filename, err.what()));
@@ -158,6 +173,7 @@ static sol::object solRegexMany(const std::string &regex, const std::string &str
 
 sol::table ScriptTask::taskContext()
 {
+	// TODO limit to where stuff can be copied/downloaded
 	auto getCommon = [this](const Net::Download::Ptr &dl, const sol::table &opts)
 	{
 		auto addChecksumValidator = [dl, opts](const std::string &name, const QCryptographicHash::Algorithm algo)
@@ -165,7 +181,7 @@ sol::table ScriptTask::taskContext()
 			const sol::optional<std::string> sum = opts[name];
 			if (sum)
 			{
-				dl->addValidator(new Net::ChecksumValidator(algo, QByteArray::fromStdString(sum.value())));
+				dl->addValidator(new Net::ChecksumValidator(algo, QByteArray::fromHex(QByteArray::fromStdString(sum.value()))));
 			}
 		};
 		addChecksumValidator("md5", QCryptographicHash::Md5);
@@ -196,28 +212,36 @@ sol::table ScriptTask::taskContext()
 			throw Exception(job.failReason());
 		}
 	};
-	auto getFile = [getCommon](const std::string &url, const std::string &destination, const sol::table &opts) -> void
+	auto getFile = [getCommon](const std::string &url, const sol::table &opts) -> std::string
 	{
 		const QString urlString = QString::fromStdString(url);
 
 		Net::Download::Ptr dl;
+		auto entry = ENV.metacache()->resolveEntry("general", urlString);
+		if (!opts.get_or<bool, std::string, bool>("no_refetch", true))
+		{
+			entry->setStale(true);
+		}
+		dl = Net::Download::makeCached(urlString, entry);
+
+		getCommon(dl, opts);
+
+		return entry->getFullPath().toStdString();
+	};
+	auto getFileAndCopy = [getCommon, getFile](const std::string &url, const std::string &destination, const sol::table &opts) -> void
+	{
+		const QString urlString = QString::fromStdString(url);
 		if (opts.get_or<bool, std::string, bool>("cached", true))
 		{
-			auto entry = ENV.metacache()->resolveEntry("general", urlString);
-			entry->setStale(true);
-			dl = Net::Download::makeCached(urlString, entry);
-
-			getCommon(dl, opts);
-
-			if (!QFile::copy(entry->getFullPath(), QString::fromStdString(destination)))
+			const QString filename = QString::fromStdString(getFile(url, opts));
+			if (!QFile::copy(filename, QString::fromStdString(destination)))
 			{
-				throw Exception(QString("Unable to copy %1 (%2) to %3").arg(entry->getFullPath(), urlString, QString::fromStdString(destination)));
+				throw Exception(QString("Unable to copy %1 (%2) to %3").arg(filename, urlString, QString::fromStdString(destination)));
 			}
 		}
 		else
 		{
-			dl = Net::Download::makeFile(urlString, QString::fromStdString(destination));
-
+			Net::Download::Ptr dl = Net::Download::makeFile(urlString, QString::fromStdString(destination));
 			getCommon(dl, opts);
 		}
 	};
@@ -229,7 +253,10 @@ sol::table ScriptTask::taskContext()
 		if (opts.get_or<bool, std::string, bool>("cached", true))
 		{
 			auto entry = ENV.metacache()->resolveEntry("general", urlString);
-			entry->setStale(true);
+			if (!opts.get_or<bool, std::string, bool>("no_refetch", true))
+			{
+				entry->setStale(true);
+			}
 			dl = Net::Download::makeCached(urlString, entry);
 			getCommon(dl, opts);
 			return FS::read(entry->getFullPath()).toStdString();
@@ -243,17 +270,89 @@ sol::table ScriptTask::taskContext()
 		}
 	};
 
+	auto libraryFrom = [](const std::string &name, const QByteArray &data)
+	{
+		const GradleSpecifier spec(QString::fromStdString(name));
+		auto cacheentry = ENV.metacache()->resolveEntry("libraries", spec.toPath());
+
+		FS::write(cacheentry->getFullPath(), data);
+		QCryptographicHash md5sum(QCryptographicHash::Md5);
+
+		cacheentry->setStale(false);
+		cacheentry->setMD5Sum(QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex().constData());
+		ENV.metacache()->updateEntry(cacheentry);
+	};
+	auto verifyOneSixLibraryFormat = [](const sol::table &json)
+	{
+		try
+		{
+			OneSixVersionFormat::libraryFromJson(QJsonObject::fromVariantHash(LuaUtil::toVariantHash(json)), "<from lua>");
+			return true;
+		}
+		catch (...)
+		{
+			return false;
+		}
+	};
+	auto verifyOneSixVersionFormat = [](const sol::table &json)
+	{
+		try
+		{
+			OneSixVersionFormat::versionFileFromJson(QJsonDocument(QJsonObject::fromVariantHash(LuaUtil::toVariantHash(json))),
+													 "<from lua>", false);
+			return true;
+		}
+		catch (...)
+		{
+			return false;
+		}
+	};
+	auto openZip = [this](const std::string &filename, sol::this_state state)
+	{
+		std::shared_ptr<QuaZip> zip = std::make_shared<QuaZip>(QString::fromStdString(filename));
+		if (!zip->open(QuaZip::mdUnzip))
+		{
+			throw Exception(QString("Unable to open Zip file %1").arg(zip->getZipName()));
+		}
+
+		auto readBinary = [zip](const std::string &filename)
+		{
+			if (!zip->setCurrentFile(QString::fromStdString(filename)))
+			{
+				throw Exception(QString("Zip error: %1 does not exist in %2").arg(QString::fromStdString(filename), zip->getZipName()));
+			}
+			QuaZipFile file(zip.get());
+			if (!file.open(QuaZipFile::ReadOnly))
+			{
+				throw Exception(QString("Zip error: Unable to open %1 in %2").arg(QString::fromStdString(filename), zip->getZipName()));
+			}
+			return file.readAll();
+		};
+
+		return sol::table::create_with(state.L,
+									   "read", sol::as_function([readBinary](const std::string &filename) { return QString::fromUtf8(readBinary(filename)).toStdString(); }),
+									   "readb", sol::as_function(readBinary));
+	};
+
 	sol::state *lua = m_script->m_lua;
 	sol::table ctxt = m_script->staticContext();
 	ctxt["status"] = lua->create_table_with(
-				"message", sol::as_function([this](const std::string &msg) { setStatus(QString::fromStdString(msg)); }),
+				"message", sol::as_function([this](const std::string &msg) { qDebug() << "Lua task status:" << msg.c_str(); setStatus(QString::fromStdString(msg)); }),
 				"progress", sol::as_function([this](const uint64_t current, const uint64_t total) { setProgress(current, total); }),
-				"progress_idle", sol::as_function([this]() { setProgress(0, 0); })
+				"progress_idle", sol::as_function([this]() { setProgress(0, 0); }),
+				"fail", sol::as_function([this](const std::string &msg) { throw Exception(QString::fromStdString(msg)); })
 			);
 	ctxt["http"] = lua->create_table_with(
 				"get_file", sol::as_function(getFile),
+				"get_file_to", sol::as_function(getFileAndCopy),
 				"get", sol::as_function(get)
 			);
+	ctxt["libraries"] = lua->create_table_with(
+				"from", sol::as_function(libraryFrom)
+				);
+	ctxt["verify_onesix_library_format"] = sol::as_function(verifyOneSixLibraryFormat);
+	ctxt["verify_onesix_version_format"] = sol::as_function(verifyOneSixVersionFormat);
+	ctxt["zip"] = sol::as_function(openZip);
 	ctxt["fs"] = lua->create_table_with();
 	ctxt["from_json"] = sol::as_function([lua](const std::string &json) { return LuaUtil::fromJson(*lua, json); });
 	ctxt["to_json"] = sol::as_function(&LuaUtil::toJson);

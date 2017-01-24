@@ -11,6 +11,9 @@
 #include "Json.h"
 #include "ScriptEntityVersion.h"
 #include "ScriptEntityVersionList.h"
+#include "FileSystem.h"
+#include "minecraft/onesix/OneSixInstance.h"
+#include "minecraft/onesix/OneSixVersionFormat.h"
 
 QVector<EntityProvider::Entity> convert(const sol::table &in, EntityProvider *provider)
 {
@@ -79,6 +82,25 @@ std::shared_ptr<BaseVersionList> EntityProvider::versionList(const EntityProvide
 	return m_versionLists.value(entity.internalId);
 }
 
+static sol::table scriptReadPatch(BaseInstance *instance, const QString &uid, sol::this_state state)
+{
+	sol::state_view stateView(state);
+
+	OneSixInstance *onesixInstance = dynamic_cast<OneSixInstance *>(instance);
+	if (!onesixInstance)
+	{
+		throw Exception(QString("Attempting to read patch from non-OneSix instance"));
+	}
+
+	const ProfilePatchPtr patch = onesixInstance->getMinecraftProfile()->versionPatch(uid);
+	if (!patch)
+	{
+		throw Exception(QString("Attempting to read non-existent patch %1").arg(uid));
+	}
+
+	const VersionFilePtr versionFile = patch->getVersionFile();
+	return LuaUtil::fromJson(stateView, Json::requireObject(OneSixVersionFormat::versionFileToJson(versionFile, false)));
+}
 static void scriptWritePatch(BaseInstance *instance, const ScriptVersionPtr &version, const sol::table &data)
 {
 	const EntityProvider::Entity entity = version->versionList()->entity();
@@ -92,8 +114,18 @@ static void scriptWritePatch(BaseInstance *instance, const ScriptVersionPtr &ver
 		obj.insert("mcVersion", QString::fromStdString(version->table().get<std::string>("mcVersion")));
 	}
 
-	const QString filename = QDir(instance->instanceRoot()).absoluteFilePath("patches/" + version->versionList()->entity().internalId + ".json");
-	Json::write(obj, filename);
+	Json::write(obj, version->patchFilename(instance));
+}
+static void scriptRemoveIfExistsPatch(BaseInstance *instance, const ScriptVersionPtr &version)
+{
+	const QString filename = version->patchFilename(instance);
+	if (QFile::exists(filename))
+	{
+		if (!QFile::remove(filename))
+		{
+			throw Exception(QStringLiteral("Unable to remove existing patch file for %1").arg(version->versionList()->entity().internalId));
+		}
+	}
 }
 
 std::unique_ptr<Task> EntityProvider::createInstallTask(BaseInstance *instance, const std::shared_ptr<BaseVersion> &version)
@@ -111,11 +143,15 @@ std::unique_ptr<Task> EntityProvider::createInstallTask(BaseInstance *instance, 
 					ver->versionList()->table().get<sol::protected_function>("install"));
 
 		sol::table context = task->taskContext();
-		context["write_patch"] = sol::as_function([this, instance, ver](const sol::table &data) { scriptWritePatch(instance, ver, data); });
+		context["patch"] = context.create_with(
+					"read", sol::as_function([this, instance](const std::string &name, sol::this_state state) { return scriptReadPatch(instance, QString::fromStdString(name), state); }),
+					"write", sol::as_function([this, instance, ver](const sol::table &data) { scriptWritePatch(instance, ver, data); }),
+					"remove_if_exists", sol::as_function([this, instance, ver]() { scriptRemoveIfExistsPatch(instance, ver); })
+					);
 		context["reload"] = sol::as_function([this, instance]() { instance->reload(); });
 
 		sol::protected_function_result res = installerFunc(context, ver->table());
-		if (!res)
+		if (!res.valid())
 		{
 			sol::error err = res;
 			throw Exception(QString("Unable to install %1 %2: %3").arg(ver->versionList()->entity().internalId, ver->name(), QString(err.what())));

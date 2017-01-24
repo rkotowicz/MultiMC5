@@ -6,6 +6,7 @@
 
 class ScriptEntityVersionList;
 class EntityProvider;
+class BaseInstance;
 
 class ScriptEntityVersion : public BaseVersion
 {
@@ -22,6 +23,8 @@ public:
 
 	sol::table table() const { return m_table; }
 	ScriptEntityVersionList *versionList() const { return m_versionList; }
+
+	QString patchFilename(const BaseInstance *instance) const;
 
 private:
 	sol::table m_table;

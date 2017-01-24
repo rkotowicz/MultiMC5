@@ -67,25 +67,6 @@ int ScriptEntityVersionList::count() const
 	return m_list.size();
 }
 
-BaseVersionPtr ScriptEntityVersionList::getLatestStable() const
-{
-	auto getter = m_table.get<std::function<std::string()>>("latest");
-	if (getter)
-	{
-		return const_cast<ScriptEntityVersionList *>(this)->findVersion(QString::fromStdString(getter()));
-	}
-	return BaseVersionList::getLatestStable();
-}
-BaseVersionPtr ScriptEntityVersionList::getRecommended() const
-{
-	auto getter = m_table.get<std::function<std::string()>>("recommended");
-	if (getter)
-	{
-		return const_cast<ScriptEntityVersionList *>(this)->findVersion(QString::fromStdString(getter()));
-	}
-	return BaseVersionList::getRecommended();
-}
-
 void ScriptEntityVersionList::sortVersions()
 {
 	std::sort(m_list.begin(), m_list.end(), [this](const ScriptVersionPtr &a, const ScriptVersionPtr &b) { return compareLessThan(a.get(), b.get()); });
@@ -96,11 +77,11 @@ bool ScriptEntityVersionList::compareLessThan(const ScriptEntityVersion *a, cons
 	auto comparator = m_table.get<std::function<bool(sol::table, sol::table, sol::table)>>("comparator");
 	if (comparator)
 	{
-		return comparator(m_provider->script()->staticContext(), a->table(), b->table());
+		return comparator(m_provider->script()->staticContext(), b->table(), a->table());
 	}
 	else
 	{
-		return a->name() < b->name();
+		return b->name() < a->name();
 	}
 }
 

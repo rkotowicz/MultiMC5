@@ -72,9 +72,9 @@ QVariant toVariant(const sol::object &object);
 QVariantHash toVariantHash(const sol::table &table);
 QVariantList toVariantList(const sol::table &table);
 
-sol::table fromJson(sol::state &state, const QJsonObject &obj);
-sol::table fromJson(sol::state &state, const QJsonArray &arr);
-sol::table fromJson(sol::state &state, const std::string &json);
+sol::table fromJson(sol::state_view &state, const QJsonObject &obj);
+sol::table fromJson(sol::state_view &state, const QJsonArray &arr);
+sol::table fromJson(sol::state_view &state, const std::string &json);
 std::string toJson(const sol::table &table);
 QJsonObject toJsonObject(const sol::table &table);
 

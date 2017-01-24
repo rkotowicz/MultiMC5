@@ -350,6 +350,7 @@ qt5_wrap_ui(MULTIMC_UI ${MULTIMC_UIS})
 qt5_add_resources(MULTIMC_RESOURCES ${MULTIMC_QRCS})
 
 # Add executable
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 add_executable(MultiMC MACOSX_BUNDLE WIN32 ${MULTIMC_SOURCES} ${MULTIMC_UI} ${MULTIMC_RESOURCES} ${MULTIMC_RCS})
 target_link_libraries(MultiMC MultiMC_gui ${QUAZIP_LIBRARIES} hoedown MultiMC_rainbow LocalPeer ganalytics)
 

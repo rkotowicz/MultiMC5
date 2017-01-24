@@ -1,7 +1,10 @@
 #include "ScriptEntityVersion.h"
 
+#include <QDir>
+
 #include "ScriptEntityVersionList.h"
 #include "LuaUtil.h"
+#include "BaseInstance.h"
 
 ScriptEntityVersion::ScriptEntityVersion(const sol::table &table, ScriptEntityVersionList *versionList, EntityProvider *provider)
 	: m_table(table), m_versionList(versionList), m_provider(provider) {}
@@ -18,7 +21,7 @@ QString ScriptEntityVersion::name() const
 
 QString ScriptEntityVersion::typeString() const
 {
-	return LuaUtil::requiredString(m_table, "type");
+	return LuaUtil::optionalString(m_table, "type");
 }
 
 bool ScriptEntityVersion::operator <(BaseVersion &other)
@@ -28,4 +31,9 @@ bool ScriptEntityVersion::operator <(BaseVersion &other)
 bool ScriptEntityVersion::operator >(BaseVersion &other)
 {
 	return m_versionList->compareLessThan(dynamic_cast<ScriptEntityVersion *>(&other), this);
+}
+
+QString ScriptEntityVersion::patchFilename(const BaseInstance *instance) const
+{
+	return QDir(instance->instanceRoot()).absoluteFilePath("patches/" + m_versionList->entity().internalId + ".json");
 }
