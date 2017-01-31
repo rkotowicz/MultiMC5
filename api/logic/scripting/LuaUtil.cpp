@@ -130,3 +130,9 @@ bool LuaUtil::isMap(const sol::table &table)
 	auto it = table.cbegin();
 	return (*it).first.get_type() != sol::type::number;
 }
+
+sol::table LuaUtil::fromVariantHash(sol::state_view &state, const QVariantHash &hash)
+{
+	// go through json because i'm lazy
+	return fromJson(state, QJsonObject::fromVariantHash(hash));
+}

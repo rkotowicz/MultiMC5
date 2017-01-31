@@ -30,6 +30,10 @@ public:
 
 	std::unique_ptr<Task> createUpdateAllTask();
 
+	enum
+	{
+		EntityTypeRole = Qt::UserRole + 554
+	};
 	QAbstractItemModel *entitiesModel() const;
 
 	QAbstractItemModel *infoModel() const;

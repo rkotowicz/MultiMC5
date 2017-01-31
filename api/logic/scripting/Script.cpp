@@ -41,6 +41,17 @@ Script::Script(const QString &filename, QObject *parent)
 		m_epm->registerProvider(ep);
 		m_scriptProvidedObjects.append(ep);
 	});
+	m_lua->new_enum("EntityType",
+					"Mod", EntityProvider::Entity::Mod,
+					"Modpack", EntityProvider::Entity::Modpack,
+					"TexturePack", EntityProvider::Entity::TexturePack,
+					"World", EntityProvider::Entity::World,
+					"Patch", EntityProvider::Entity::Patch,
+					"Other", EntityProvider::Entity::Other);
+	m_lua->set_function("parse_iso8601", [](const std::string &date)
+	{
+		return QDateTime::fromString(QString::fromStdString(date), Qt::ISODate).toSecsSinceEpoch();
+	});
 }
 
 void Script::reload()
@@ -173,7 +184,7 @@ static sol::object solRegexMany(const std::string &regex, const std::string &str
 								   "has_next", sol::as_function([it]() { return it->hasNext(); }));
 }
 
-sol::table ScriptTask::taskContext()
+sol::table ScriptTask::taskContext(const QDir &contextDir)
 {
 	// TODO limit to where stuff can be copied/downloaded
 	auto getCommon = [this](const Net::Download::Ptr &dl, const sol::table &opts)
@@ -230,21 +241,14 @@ sol::table ScriptTask::taskContext()
 
 		return entry->getFullPath().toStdString();
 	};
-	auto getFileAndCopy = [getCommon, getFile](const std::string &url, const std::string &destination, const sol::table &opts) -> void
+	auto getFileAndCopy = [getCommon, getFile, contextDir](const std::string &url, const std::string &destination, const sol::table &opts) -> void
 	{
+		const QString dest = contextDir.absoluteFilePath(QString::fromStdString(destination));
 		const QString urlString = QString::fromStdString(url);
-		if (opts.get_or<bool, std::string, bool>("cached", true))
+		const QString filename = QString::fromStdString(getFile(url, opts));
+		if (!QFile::copy(filename, dest))
 		{
-			const QString filename = QString::fromStdString(getFile(url, opts));
-			if (!QFile::copy(filename, QString::fromStdString(destination)))
-			{
-				throw Exception(QString("Unable to copy %1 (%2) to %3").arg(filename, urlString, QString::fromStdString(destination)));
-			}
-		}
-		else
-		{
-			Net::Download::Ptr dl = Net::Download::makeFile(urlString, QString::fromStdString(destination));
-			getCommon(dl, opts);
+			throw Exception(QString("Unable to copy %1 (%2) to %3").arg(filename, urlString, QString::fromStdString(destination)));
 		}
 	};
 	auto get = [getCommon](const std::string &url, const sol::table &opts) -> std::string

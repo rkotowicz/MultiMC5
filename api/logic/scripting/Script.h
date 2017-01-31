@@ -18,6 +18,7 @@ public:
 };
 
 class Script;
+class QDir;
 
 /// A task provided by a script
 class ScriptTask : public Task
@@ -28,7 +29,7 @@ public:
 
 	void executeTask() override;
 
-	sol::table taskContext();
+	sol::table taskContext(const QDir &contextDir);
 
 private:
 	Function m_func;

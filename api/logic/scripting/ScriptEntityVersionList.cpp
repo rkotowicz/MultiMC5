@@ -1,5 +1,7 @@
 #include "ScriptEntityVersionList.h"
 
+#include <QDir>
+
 #include "Script.h"
 #include "ScriptEntityVersion.h"
 #include "LuaUtil.h"
@@ -42,7 +44,7 @@ Task *ScriptEntityVersionList::getLoadTask()
 	return new ScriptTask([this](ScriptTask *task) -> void
 	{
 		auto internalFunc = LuaUtil::required<sol::protected_function>(m_table, "load");
-		sol::protected_function_result rawResult = internalFunc(task->taskContext());
+		sol::protected_function_result rawResult = internalFunc(task->taskContext(QDir::current()));
 		if (!rawResult.valid() || !rawResult.get<sol::optional<sol::table>>())
 		{
 			const sol::error err = rawResult;

@@ -79,6 +79,8 @@ set(CORE_SOURCES
 	# A proxy model that converts urls to icons
 	IconUrlProxyModel.h
 	IconUrlProxyModel.cpp
+	ProxyModelChain.h
+	ProxyModelChain.cpp
 )
 
 add_unit_test(FileSystem

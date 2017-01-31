@@ -68,6 +68,7 @@ static QString optionalString(const Table &table, const std::string &key)
 /// Only checks the type of the first key
 MULTIMC_LOGIC_EXPORT bool isMap(const sol::table &table);
 
+sol::table fromVariantHash(sol::state_view &state, const QVariantHash &hash);
 QVariant toVariant(const sol::object &object);
 QVariantHash toVariantHash(const sol::table &table);
 QVariantList toVariantList(const sol::table &table);

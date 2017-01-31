@@ -13,8 +13,10 @@ IconUrlProxyModel::IconUrlProxyModel(QObject *parent)
 
 QVariant IconUrlProxyModel::data(const QModelIndex &proxyIndex, int role) const
 {
-	const QVariant source = QIdentityProxyModel::data(proxyIndex, role);
-	if (role == Qt::DecorationRole && (source.type() == QVariant::String || source.type() == QVariant::Url))
+	const QVariant source = QIdentityProxyModel::data(proxyIndex,
+													  role == SourceSizeDecorationRole ? Qt::DecorationRole : role);
+	if ((role == Qt::DecorationRole || role == SourceSizeDecorationRole) &&
+			(source.type() == QVariant::String || source.type() == QVariant::Url))
 	{
 		const QUrl url = source.toUrl();
 		if (!url.isValid() || url.isEmpty())
@@ -22,15 +24,17 @@ QVariant IconUrlProxyModel::data(const QModelIndex &proxyIndex, int role) const
 			return QVariant();
 		}
 
-		auto read = [](const QString &filename) -> QVariant
+		auto read = [](const QString &filename) -> QPair<QVariant, QVariant>
 		{
 			if (filename.endsWith(".ico"))
 			{
-				return QIcon(filename);
+				const QIcon icon = QIcon(filename);
+				return QPair<QVariant, QVariant>(icon, icon);
 			}
 			else
 			{
-				return QPixmap(filename).scaled(32, 32, Qt::KeepAspectRatio);
+				const QPixmap orig = QPixmap(filename);
+				return QPair<QVariant, QVariant>(orig, orig.scaled(32, 32, Qt::KeepAspectRatio));
 			}
 		};
 
@@ -44,7 +48,7 @@ QVariant IconUrlProxyModel::data(const QModelIndex &proxyIndex, int role) const
 			auto entry = ENV.metacache()->resolveEntry("icons", cacheKey);
 			if (entry->isStale())
 			{
-				m_cache.insert(cacheKey, QVariant()); // prevent multiple downloads
+				m_cache.insert(cacheKey, qMakePair(QVariant(), QVariant())); // prevent multiple downloads
 
 				QPersistentModelIndex persistentIndex(proxyIndex);
 
@@ -55,7 +59,8 @@ QVariant IconUrlProxyModel::data(const QModelIndex &proxyIndex, int role) const
 					m_cache.insert(cacheKey, read(entry->getFullPath()));
 					if (persistentIndex.isValid())
 					{
-						emit const_cast<IconUrlProxyModel *>(this)->dataChanged(persistentIndex, persistentIndex, QVector<int>() << Qt::DecorationRole);
+						emit const_cast<IconUrlProxyModel *>(this)->dataChanged(persistentIndex, persistentIndex,
+																				QVector<int>() << Qt::DecorationRole << SourceSizeDecorationRole);
 					}
 				});
 				job->addNetAction(dl);
@@ -67,7 +72,15 @@ QVariant IconUrlProxyModel::data(const QModelIndex &proxyIndex, int role) const
 				m_cache.insert(cacheKey, read(entry->getFullPath()));
 			}
 		}
-		return m_cache.value(cacheKey);
+
+		if (role == Qt::DecorationRole)
+		{
+			return m_cache.value(cacheKey).second;
+		}
+		else
+		{
+			return m_cache.value(cacheKey).first;
+		}
 	}
 	return source;
 }

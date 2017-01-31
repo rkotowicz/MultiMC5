@@ -42,6 +42,10 @@ public:
 		{
 			return entity.iconUrl;
 		}
+		else if (role == EntityProviderManager::EntityTypeRole)
+		{
+			return entity.type;
+		}
 		return QVariant();
 	}
 	QVariant headerData(int section, Qt::Orientation orientation, int role) const override

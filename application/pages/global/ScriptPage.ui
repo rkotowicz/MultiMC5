@@ -96,6 +96,12 @@
       <layout class="QGridLayout" name="gridLayout_3">
        <item row="0" column="0" rowspan="4">
         <widget class="QTreeView" name="providersView">
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
          <attribute name="headerVisible">
           <bool>false</bool>
          </attribute>

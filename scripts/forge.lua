@@ -25,10 +25,11 @@ register_entity_provider({
 			id = "net.minecraftforge",
 			name = "Minecraft Forge",
 			icon_url = "https://cdn.rawgit.com/MinecraftForge/MinecraftForge/5da0ac73b936185ed4f3cc2f35c6228d93e6a69d/icon.ico",
-			author = "Forge developers"
+			author = "Forge developers",
+			type = EntityType.Patch
 		}
 	},
-	version_list_factory = function(id)
+	version_list_factory = function(entity)
 		return {
 			roles = {
 				parent_game_version = "mcVersion",

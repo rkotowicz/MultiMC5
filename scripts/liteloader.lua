@@ -11,10 +11,11 @@ register_entity_provider({
 			id = "liteloader",
 			name = "LiteLoader",
 			icon_url = "http://www.liteloader.com/favicon.ico",
-			author = "Mumfrey"
+			author = "Mumfrey",
+			type = EntityType.Patch
 		}
 	},
-	version_list_factory = function(id)
+	version_list_factory = function(entity)
 		return {
 			roles = {
 				parent_game_version = "mcVersion",

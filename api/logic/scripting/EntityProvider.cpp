@@ -21,12 +21,7 @@ QVector<EntityProvider::Entity> convert(const sol::table &in, EntityProvider *pr
 	for (const auto &pair : in)
 	{
 		const sol::table table = LuaUtil::required<sol::table>(pair.second);
-		out.append(EntityProvider::Entity{
-									provider,
-									LuaUtil::requiredString(table, "id"),
-									LuaUtil::requiredString(table, "name"),
-									LuaUtil::optionalString(table, "icon_url")
-								});
+		out.append(EntityProvider::Entity::fromTable(provider, table));
 	}
 	return out;
 }
@@ -60,10 +55,11 @@ EntityProvider::EntityProvider(const sol::table &table, Script *script)
 		throw ScriptLoadException(QString("Provided entity with ID '%1' does not provide any entities, either static_entities or dynamic_entities need to be non-empty").arg(m_id));
 	}
 
-	auto internalListFactoryFunc = LuaUtil::required<std::function< sol::table(std::string) >>(table, "version_list_factory");
-	m_versionListFactoryFunc = [this, internalListFactoryFunc](const Entity &entity)
+	auto internalListFactoryFunc = LuaUtil::required<std::function< sol::table(sol::table) >>(table, "version_list_factory");
+	m_versionListFactoryFunc = [this, table, internalListFactoryFunc](const Entity &entity)
 	{
-		return std::make_shared<ScriptEntityVersionList>(internalListFactoryFunc(entity.internalId.toStdString()), entity, this);
+		sol::state_view state(table.lua_state());
+		return std::make_shared<ScriptEntityVersionList>(internalListFactoryFunc(entity.toTable(state)), entity, this);
 	};
 }
 
@@ -72,7 +68,7 @@ std::unique_ptr<Task> EntityProvider::createUpdateEntitiesTask()
 	return std::make_unique<ScriptTask>([this](ScriptTask *task)
 	{
 		emit beforeEntitiesUpdate();
-		m_entities = m_entitiesUpdateFunc(task->taskContext());
+		m_entities = m_entitiesUpdateFunc(task->taskContext(QDir::current()));
 		emit afterEntitiesUpdate();
 	}, m_script, this);
 }
@@ -145,7 +141,7 @@ std::unique_ptr<Task> EntityProvider::createInstallTask(BaseInstance *instance, 
 					"install",
 					ver->versionList()->table().get<sol::protected_function>("install"));
 
-		sol::table context = task->taskContext();
+		sol::table context = task->taskContext(instance->instanceRoot());
 		context["patch"] = context.create_with(
 					"read", sol::as_function([this, instance](const std::string &name, sol::this_state state) { return scriptReadPatch(instance, QString::fromStdString(name), state); }),
 					"write", sol::as_function([this, instance, ver](const sol::table &data) { scriptWritePatch(instance, ver, data); }),
@@ -164,4 +160,30 @@ std::unique_ptr<Task> EntityProvider::createInstallTask(BaseInstance *instance, 
 QVector<EntityProvider::Entity> EntityProvider::entities() const
 {
 	return m_entities + m_staticEntities;
+}
+
+sol::table EntityProvider::Entity::toTable(sol::state_view &state) const
+{
+	sol::table table = LuaUtil::fromVariantHash(state, extraData);
+	table["id"] = internalId.toStdString();
+	table["name"] = name.toStdString();
+	table["icon_url"] = iconUrl.toStdString();
+	table["type"] = type;
+	return table;
+}
+EntityProvider::Entity EntityProvider::Entity::fromTable(EntityProvider *provider, const sol::table &table)
+{
+	QVariantHash data = LuaUtil::toVariantHash(table);
+	data.remove("id");
+	data.remove("name");
+	data.remove("icon_url");
+	data.remove("type");
+	return EntityProvider::Entity{
+		provider,
+		LuaUtil::requiredString(table, "id"),
+		LuaUtil::requiredString(table, "name"),
+		LuaUtil::optionalString(table, "icon_url"),
+		table.get_or("type", EntityProvider::Entity::Other),
+		data
+	};
 }

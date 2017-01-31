@@ -25,8 +25,23 @@ public:
 		QString name;
 		QString iconUrl;
 
+		enum Type
+		{
+			Mod,
+			Modpack,
+			TexturePack,
+			World,
+			Patch,
+			Other
+		} type = Other;
+
+		QVariantHash extraData;
+
 		bool isNull() const { return internalId.isNull(); }
 		std::shared_ptr<BaseVersionList> versionList() const { return provider->versionList(*this); }
+		sol::table toTable(sol::state_view &state) const;
+
+		static Entity fromTable(EntityProvider *provider, const sol::table &table);
 	};
 
 	explicit EntityProvider(const sol::table &table, Script *script);
