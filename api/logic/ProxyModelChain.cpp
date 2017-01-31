@@ -36,7 +36,7 @@ QModelIndex ProxyModelChain::mapToSource(const QModelIndex &index) const
 		return index;
 	}
 
-	Q_ASSERT(index.model() == m_chain.first());
+	Q_ASSERT(index.model() == m_chain.last());
 
 	QModelIndex ind = index;
 	for (auto it = m_chain.crbegin(); it != m_chain.crend(); ++it)
@@ -44,7 +44,7 @@ QModelIndex ProxyModelChain::mapToSource(const QModelIndex &index) const
 		ind = (*it)->mapToSource(ind);
 	}
 
-	Q_ASSERT(ind.model() == m_chain.last());
+	Q_ASSERT(ind.model() == m_source);
 	return ind;
 }
 QModelIndex ProxyModelChain::mapFromSource(const QModelIndex &index) const
@@ -54,7 +54,7 @@ QModelIndex ProxyModelChain::mapFromSource(const QModelIndex &index) const
 		return index;
 	}
 
-	Q_ASSERT(index.model() == m_chain.first());
+	Q_ASSERT(index.model() == m_source);
 
 	QModelIndex ind = index;
 	for (auto it = m_chain.cbegin(); it != m_chain.cend(); ++it)

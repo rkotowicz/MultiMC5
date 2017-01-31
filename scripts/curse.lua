@@ -101,8 +101,20 @@ register_entity_provider({
 			install = function(ctxt, version)
 				local parts = version.webpage:split("/")
 				local file_id = table.remove(parts)
-				local url = string.format("https://minecraft.curseforge.com/projects/%s/files/%s/download", parts[5], file_id)
-				ctxt.http.get_file_to(url, string.format("minecraft/mods/%s-%s-%s.jar", entity.id, version.mcVersion, version.name))
+				local slug = entity.type == EntityType.Mod and parts[5] or parts[5]:sub(parts[5]:find("-")+1)
+				local url = string.format("https://minecraft.curseforge.com/projects/%s/files/%s/download", slug, file_id)
+
+				if entity.type == EntityType.Mod then
+					ctxt.http.get_file_to(url, string.format("minecraft/mods/%s-%s-%s.jar", entity.id, version.mcVersion, version.name))
+				elseif entity.type == EntityType.TexturePack then
+					-- TODO: texturepacks folder
+					ctxt.http.get_file_to(url, string.format("minecraft/resourcepacks/%s-%s-%s.zip", entity.id, version.mcVersion, version.name))
+				elseif entity.type == EntityType.World then
+					local filename = ctxt.http.get_file(url)
+					ctxt.extractZip(filename, "minecraft/saves")
+				elseif entity.Type == EntityType.Modpack then
+					ctxt.status.fail("modpack install not yet implemented")
+				end
 			end
 		}
 	end

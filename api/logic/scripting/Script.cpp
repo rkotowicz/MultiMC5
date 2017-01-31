@@ -19,6 +19,7 @@
 #include "minecraft/onesix/OneSixVersionFormat.h"
 #include "quazip.h"
 #include "quazipfile.h"
+#include "MMCZip.h"
 
 Script::Script(const QString &filename, QObject *parent)
 	: QObject(parent), m_lua(new sol::state), m_filename(filename)
@@ -392,6 +393,14 @@ sol::table ScriptTask::taskContext(const QDir &contextDir)
 	ctxt["verify_onesix_library_format"] = sol::as_function(verifyOneSixLibraryFormat);
 	ctxt["verify_onesix_version_format"] = sol::as_function(verifyOneSixVersionFormat);
 	ctxt["zip"] = sol::as_function(openZip);
+	ctxt["extractZip"] = sol::as_function([contextDir](const std::string &filename, const std::string &dest)
+	{
+		const QStringList files = MMCZip::extractDir(QString::fromStdString(filename), contextDir.absoluteFilePath(QString::fromStdString(dest)));
+		if (files.isEmpty())
+		{
+			throw Exception("Unable to extract " + QString::fromStdString(filename));
+		}
+	});
 	ctxt["bzip2"] = sol::as_function(readBzip2);
 	ctxt["fs"] = lua->create_table_with();
 	ctxt["from_json"] = sol::as_function([lua](const std::string &json) { return LuaUtil::fromJson(*lua, json); });
