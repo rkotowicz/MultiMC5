@@ -63,6 +63,8 @@
 
 #include "minecraft/ftb/FTBPlugin.h"
 
+#include "technic/PackWindow.h"
+
 #include <Commandline.h>
 #include <FileSystem.h>
 #include <DesktopServices.h>
@@ -820,6 +822,9 @@ void MultiMC::initGlobalSettings()
 	m_settings->registerSetting("ConsoleWindowState", "");
 	m_settings->registerSetting("ConsoleWindowGeometry", "");
 
+	m_settings->registerSetting("TechnicWindowState", "");
+	m_settings->registerSetting("TechnicWindowGeometry", "");
+
 	m_settings->registerSetting("SettingsGeometry", "");
 
 	m_settings->registerSetting("PagedGeometry", "");
@@ -1114,6 +1119,21 @@ void MultiMC::controllerFailed(const QString& error)
 	}
 }
 
+Technic::PackWindow * MultiMC::showTechnicWindow()
+{
+	if(m_technicWindow)
+	{
+		m_technicWindow->setWindowState(m_technicWindow->windowState() & ~Qt::WindowMinimized);
+		m_technicWindow->raise();
+		m_technicWindow->activateWindow();
+		return m_technicWindow;
+	}
+	m_technicWindow = new Technic::PackWindow(m_mainWindow);
+	connect(m_technicWindow, &Technic::PackWindow::isClosing, this, &MultiMC::on_windowClose);
+	m_openWindows++;
+	return m_technicWindow;
+}
+
 MainWindow* MultiMC::showMainWindow(bool minimized)
 {
 	if(m_mainWindow)
@@ -1225,6 +1245,11 @@ void MultiMC::on_windowClose()
 	if(mainWindow)
 	{
 		m_mainWindow = nullptr;
+	}
+	auto technicWindow = qobject_cast<Technic::PackWindow *>(QObject::sender());
+	if(technicWindow)
+	{
+		m_technicWindow = nullptr;
 	}
 	// quit when there are no more windows.
 	if(shouldExitNow())

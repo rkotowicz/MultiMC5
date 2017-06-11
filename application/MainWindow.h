@@ -65,6 +65,8 @@ private slots:
 
 	void on_actionAddInstance_triggered();
 
+	void on_actionAddTechnicInstance_triggered();
+
 	void on_actionREDDIT_triggered();
 
 	void on_actionDISCORD_triggered();

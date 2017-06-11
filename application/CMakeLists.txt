@@ -101,6 +101,16 @@ SET(MULTIMC_SOURCES
 	# GUI - settings-specific wrappers for paged dialog
 	SettingsUI.h
 
+	# Technic module
+	technic/PackWindow.h
+	technic/PackWindow.cpp
+	technic/PackWidget.h
+	technic/PackWidget.cpp
+	technic/PackModel.h
+	technic/PackModel.cpp
+	technic/SolderVersion.h
+	technic/SolderVersion.cpp
+
 	# Processes
 	LaunchController.h
 	LaunchController.cpp
@@ -271,6 +281,9 @@ SET(MULTIMC_UIS
 
 	# Widgets/other
 	widgets/MCModInfoFrame.ui
+
+	# technic
+	technic/PackWidget.ui
 )
 
 set(MULTIMC_QRCS

@@ -14,6 +14,10 @@ class LaunchController;
 class LocalPeer;
 class InstanceWindow;
 class MainWindow;
+namespace Technic
+{
+	class PackWindow;
+}
 class SetupWizard;
 class FolderInstanceProvider;
 class GenericPageProvider;
@@ -141,6 +145,7 @@ public:
 	 */
 	bool openJsonEditor(const QString &filename);
 
+	Technic::PackWindow *showTechnicWindow();
 	InstanceWindow *showInstanceWindow(InstancePtr instance, QString page = QString());
 	MainWindow *showMainWindow(bool minimized = false);
 
@@ -235,6 +240,9 @@ private:
 
 	// main window, if any
 	MainWindow * m_mainWindow = nullptr;
+
+	// windows with catalog of technic packs
+	Technic::PackWindow * m_technicWindow = nullptr;
 
 	// peer MultiMC instance connector - used to implement single instance MultiMC and signalling
 	LocalPeer * m_peerInstance = nullptr;

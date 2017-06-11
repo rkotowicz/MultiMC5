@@ -95,6 +95,7 @@ class MainWindow::Ui
 {
 public:
 	QAction *actionAddInstance;
+	QAction *actionAddTechnicInstance;
 	QAction *actionViewInstanceFolder;
 	QAction *actionRefresh;
 	QAction *actionViewCentralModsFolder;
@@ -161,6 +162,9 @@ public:
 		actionAddInstance = new QAction(MainWindow);
 		actionAddInstance->setObjectName(QStringLiteral("actionAddInstance"));
 		actionAddInstance->setIcon(MMC->getThemedIcon("new"));
+		actionAddTechnicInstance = new QAction(MainWindow);
+		actionAddTechnicInstance->setObjectName(QStringLiteral("actionAddTechnicInstance"));
+		actionAddTechnicInstance->setIcon(MMC->getThemedIcon("technic"));
 		actionViewInstanceFolder = new QAction(MainWindow);
 		actionViewInstanceFolder->setObjectName(QStringLiteral("actionViewInstanceFolder"));
 		actionViewInstanceFolder->setIcon(MMC->getThemedIcon("viewfolder"));
@@ -276,6 +280,7 @@ public:
 		MainWindow->addToolBar(Qt::BottomToolBarArea, newsToolBar);
 
 		mainToolBar->addAction(actionAddInstance);
+		mainToolBar->addAction(actionAddTechnicInstance);
 		mainToolBar->addAction(actionCopyInstance);
 		mainToolBar->addSeparator();
 		mainToolBar->addAction(actionViewInstanceFolder);
@@ -323,6 +328,8 @@ public:
 		MainWindow->setWindowTitle("MultiMC 5");
 		actionAddInstance->setText(tr("Add Instance"));
 		actionAddInstance->setToolTip(tr("Add a new instance."));
+		actionAddTechnicInstance->setText(tr("Add Technic Instance"));
+		actionAddTechnicInstance->setToolTip(tr("Add a new Technic instance."));
 		actionViewInstanceFolder->setText(tr("View Instance Folder"));
 		actionViewInstanceFolder->setToolTip(tr("Open the instance folder in a file browser."));
 		actionRefresh->setText(tr("Refresh"));
@@ -1147,6 +1154,11 @@ void MainWindow::addInstance(QString url)
 void MainWindow::on_actionAddInstance_triggered()
 {
 	addInstance();
+}
+
+void MainWindow::on_actionAddTechnicInstance_triggered()
+{
+	MMC->showTechnicWindow();
 }
 
 void MainWindow::droppedURLs(QList<QUrl> urls)

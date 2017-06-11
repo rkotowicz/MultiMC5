@@ -5,6 +5,9 @@
 		<!-- Logo. Our own. -->
 		<file>scalable/multimc.svg</file>
 
+		<!-- Technic Logo. -->
+		<file>scalable/technic.svg</file>
+
 		<!-- REDDIT logo icon, needs reddit license! -->
 		<file>scalable/reddit-alien.svg</file>
 
