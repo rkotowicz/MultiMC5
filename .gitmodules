@@ -4,3 +4,7 @@
 [submodule "libraries/quazip"]
 	path = libraries/quazip
 	url = https://github.com/MultiMC/quazip.git
+[submodule "libraries/sqlite"]
+	path = libraries/sqlite
+	url = https://github.com/MultiMC/sqlite.git
+	branch = master
