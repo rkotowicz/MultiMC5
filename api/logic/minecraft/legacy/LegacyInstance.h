@@ -123,7 +123,6 @@ public:
 	}
 
 	QString getStatusbarDescription() override;
-	QStringList verboseDescription(AuthSessionPtr session) override;
 
 	QProcessEnvironment createEnvironment() override
 	{

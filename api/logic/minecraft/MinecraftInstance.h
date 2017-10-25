@@ -10,6 +10,7 @@ class ModList;
 class WorldList;
 class LaunchStep;
 class ComponentList;
+class LaunchProfile;
 
 class MULTIMC_LOGIC_EXPORT MinecraftInstance: public BaseInstance
 {
@@ -17,7 +18,7 @@ class MULTIMC_LOGIC_EXPORT MinecraftInstance: public BaseInstance
 public:
 	MinecraftInstance(SettingsObjectPtr globalSettings, SettingsObjectPtr settings, const QString &rootDir);
 	virtual ~MinecraftInstance() {};
-	virtual void init() override;
+	virtual void init() override {};
 
 	QString typeName() const override;
 	QSet<QString> traits() const override;
@@ -51,14 +52,14 @@ public:
 
 
 	//////  Profile management //////
-	void createProfile();
-	std::shared_ptr<ComponentList> getComponentList() const;
-	void reloadProfile();
-	void clearProfile();
+	void createLaunchProfile();
+	std::shared_ptr<LaunchProfile> getLaunchProfile() const;
+	void reloadLaunchProfile();
+	void clearLaunchProfile();
 	bool reload() override;
 
-
 	//////  Mod Lists  //////
+	std::shared_ptr<ComponentList> componentList() const;
 	std::shared_ptr<ModList> loaderModList() const;
 	std::shared_ptr<ModList> coreModList() const;
 	std::shared_ptr<ModList> resourcePackList() const;
@@ -69,10 +70,11 @@ public:
 	//////  Launch stuff //////
 	shared_qobject_ptr<Task> createUpdateTask() override;
 	std::shared_ptr<LaunchTask> createLaunchTask(AuthSessionPtr account) override;
-	QStringList extraArguments() const override;
-	QStringList verboseDescription(AuthSessionPtr session) override;
 	QList<Mod> getJarMods() const;
 	QString createLaunchScript(AuthSessionPtr session);
+
+
+
 	/// get arguments passed to java
 	QStringList javaArguments() const;
 
@@ -91,13 +93,10 @@ public:
 
 	QString getStatusbarDescription() override;
 
-	virtual QStringList getClassPath() const;
-	virtual QStringList getNativeJars() const;
-	virtual QString getMainClass() const;
-
-	virtual QStringList processMinecraftArgs(AuthSessionPtr account) const;
+    virtual QStringList processMinecraftArgs(AuthSessionPtr account) const;
 
 	virtual JavaVersion getJavaVersion() const;
+	QString getJavaArchitecture() const;
 
 	QString getComponentVersion(const QString &uid) const;
 	bool setComponentVersion(const QString &uid, const QString &version);
@@ -114,7 +113,8 @@ private:
 	QString prettifyTimeDuration(int64_t duration);
 
 protected: // data
-	std::shared_ptr<ComponentList> m_profile;
+	std::shared_ptr<LaunchProfile> m_launch_profile;
+	std::shared_ptr<ComponentList> m_component_list;
 	mutable std::shared_ptr<ModList> m_loader_mod_list;
 	mutable std::shared_ptr<ModList> m_core_mod_list;
 	mutable std::shared_ptr<ModList> m_resource_pack_list;

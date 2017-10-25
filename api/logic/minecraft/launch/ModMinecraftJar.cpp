@@ -19,7 +19,7 @@
 #include "minecraft/OpSys.h"
 #include "FileSystem.h"
 #include "minecraft/MinecraftInstance.h"
-#include "minecraft/ComponentList.h"
+#include "minecraft/LaunchProfile.h"
 
 void ModMinecraftJar::executeTask()
 {
@@ -42,7 +42,12 @@ void ModMinecraftJar::executeTask()
 	}
 
 	// create temporary modded jar, if needed
-	auto profile = m_inst->getComponentList();
+	auto profile = m_inst->getLaunchProfile();
+	if(!profile)
+	{
+		emitFailed(tr("Launch profile not ready."));
+		return;
+	}
 	auto jarMods = m_inst->getJarMods();
 	if(jarMods.size())
 	{

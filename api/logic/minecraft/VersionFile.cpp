@@ -5,7 +5,7 @@
 
 #include "minecraft/VersionFile.h"
 #include "minecraft/Library.h"
-#include "minecraft/ComponentList.h"
+#include "minecraft/LaunchProfile.h"
 #include "ParseUtils.h"
 
 #include <Version.h>
@@ -15,7 +15,7 @@ static bool isMinecraftVersion(const QString &uid)
 	return uid == "net.minecraft";
 }
 
-void VersionFile::applyTo(ComponentList *profile)
+void VersionFile::applyTo(LaunchProfile *profile)
 {
 	// Only real Minecraft can set those. Don't let anything override them.
 	if (isMinecraftVersion(uid))
@@ -43,14 +43,3 @@ void VersionFile::applyTo(ComponentList *profile)
 	}
 	profile->applyProblemSeverity(getProblemSeverity());
 }
-
-/*
-	auto theirVersion = profile->getMinecraftVersion();
-	if (!theirVersion.isNull() && !dependsOnMinecraftVersion.isNull())
-	{
-		if (QRegExp(dependsOnMinecraftVersion, Qt::CaseInsensitive, QRegExp::Wildcard).indexIn(theirVersion) == -1)
-		{
-			throw MinecraftVersionMismatch(uid, dependsOnMinecraftVersion, theirVersion);
-		}
-	}
-*/

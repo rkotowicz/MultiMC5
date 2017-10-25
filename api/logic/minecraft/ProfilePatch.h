@@ -6,7 +6,7 @@
 #include <QDateTime>
 #include "ProblemProvider.h"
 
-class ComponentList;
+class LaunchProfile;
 namespace Meta
 {
 	class Version;
@@ -21,7 +21,7 @@ public:
 	ProfilePatch(std::shared_ptr<VersionFile> file, const QString &filename = QString());
 
 	virtual ~ProfilePatch(){};
-	virtual void applyTo(ComponentList *profile);
+	virtual void applyTo(LaunchProfile *profile);
 
 	virtual bool isMoveable();
 	virtual bool isCustomizable();

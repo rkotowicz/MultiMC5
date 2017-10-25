@@ -125,8 +125,6 @@ public:
 		return level;
 	};
 
-	virtual QStringList extraArguments() const;
-
 	/// Traits. Normally inside the version, depends on instance implementation.
 	virtual QSet <QString> traits() const = 0;
 
@@ -225,11 +223,6 @@ public:
 	virtual bool canExport() const = 0;
 
 	virtual bool reload();
-
-	/**
-	 * 'print' a verbose desription of the instance into a QStringList
-	 */
-	virtual QStringList verboseDescription(AuthSessionPtr session) = 0;
 
 	Status currentStatus() const;
 

@@ -290,33 +290,3 @@ QString LegacyInstance::getStatusbarDescription()
 {
 	return tr("Instance from previous versions.");
 }
-
-QStringList LegacyInstance::verboseDescription(AuthSessionPtr session)
-{
-	QStringList out;
-
-	auto alltraits = traits();
-	if(alltraits.size())
-	{
-		out << "Traits:";
-		for (auto trait : alltraits)
-		{
-			out << "  " + trait;
-		}
-		out << "";
-	}
-
-	QString windowParams;
-	if (settings()->get("LaunchMaximized").toBool())
-	{
-		out << "Window size: max (if available)";
-	}
-	else
-	{
-		auto width = settings()->get("MinecraftWinWidth").toInt();
-		auto height = settings()->get("MinecraftWinHeight").toInt();
-		out << "Window size: " + QString::number(width) + " x " + QString::number(height);
-	}
-	out << "";
-	return out;
-}

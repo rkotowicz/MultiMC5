@@ -16,6 +16,7 @@ struct PatchProblem
 class ProblemProvider
 {
 public:
+	virtual ~ProblemProvider(){}
 	virtual const QList<PatchProblem> getProblems() = 0;
 	virtual ProblemSeverity getProblemSeverity() = 0;
 };

@@ -32,8 +32,10 @@
 
 #include <QCoreApplication>
 #include "ComponentList.h"
+#include "LaunchProfile.h"
 #include "AssetsUtils.h"
 #include "MinecraftUpdate.h"
+#include <Commandline.h>
 
 #define IBUS "@im=ibus"
 
@@ -103,11 +105,6 @@ MinecraftInstance::MinecraftInstance(SettingsObjectPtr globalSettings, SettingsO
 	m_settings->registerOverride(globalSettings->getSetting("MCLaunchMethod"), launchMethodOverride);
 }
 
-void MinecraftInstance::init()
-{
-	createProfile();
-}
-
 QString MinecraftInstance::typeName() const
 {
 	return "Minecraft";
@@ -120,7 +117,7 @@ bool MinecraftInstance::reload()
 	{
 		try
 		{
-			reloadProfile();
+			reloadLaunchProfile();
 			return true;
 		}
 		catch (...)
@@ -131,39 +128,33 @@ bool MinecraftInstance::reload()
 	return false;
 }
 
-void MinecraftInstance::createProfile()
+void MinecraftInstance::clearLaunchProfile()
 {
-	m_profile.reset(new ComponentList(this));
-}
-
-void MinecraftInstance::reloadProfile()
-{
-	m_profile->reload();
-	setVersionBroken(m_profile->getProblemSeverity() == ProblemSeverity::Error);
+	m_launch_profile.reset();
+	// FIXME: does this still mean anything?
 	emit versionReloaded();
 }
 
-void MinecraftInstance::clearProfile()
+void MinecraftInstance::createLaunchProfile()
 {
-	m_profile->clear();
-	emit versionReloaded();
+	m_component_list.reset(new ComponentList(this));
 }
 
-std::shared_ptr<ComponentList> MinecraftInstance::getComponentList() const
+void MinecraftInstance::reloadLaunchProfile()
 {
-	return m_profile;
+	createLaunchProfile();
 }
 
 QSet<QString> MinecraftInstance::traits() const
 {
-	auto version = getComponentList();
-	if (!version)
+	auto profile = getLaunchProfile();
+	if (!profile)
 	{
 		return {"version-incomplete"};
 	}
 	else
 	{
-		return version->getTraits();
+		return profile->getTraits();
 	}
 }
 
@@ -250,48 +241,25 @@ QDir MinecraftInstance::versionsPath() const
 	return QDir::current().absoluteFilePath("versions");
 }
 
-QStringList MinecraftInstance::getClassPath() const
+QStringList MinecraftInstance::javaArguments() const
 {
-	QStringList jars, nativeJars;
-	auto javaArchitecture = settings()->get("JavaArchitecture").toString();
-	m_profile->getLibraryFiles(javaArchitecture, jars, nativeJars, getLocalLibraryPath(), binRoot());
-	return jars;
-}
+	auto profile = getLaunchProfile();
+	if (!profile)
+		return {};
 
-QString MinecraftInstance::getMainClass() const
-{
-	return m_profile->getMainClass();
-}
+	// custom args go first. we want to override them if we have our own here.
+	QStringList args = Commandline::splitArgs(settings()->get("JvmArgs").toString());
 
-QStringList MinecraftInstance::getNativeJars() const
-{
-	QStringList jars, nativeJars;
-	auto javaArchitecture = settings()->get("JavaArchitecture").toString();
-	m_profile->getLibraryFiles(javaArchitecture, jars, nativeJars, getLocalLibraryPath(), binRoot());
-	return nativeJars;
-}
-
-QStringList MinecraftInstance::extraArguments() const
-{
-	auto list = BaseInstance::extraArguments();
-	auto version = getComponentList();
-	if (!version)
-		return list;
 	auto jarMods = getJarMods();
 	if (!jarMods.isEmpty())
 	{
-		list.append({"-Dfml.ignoreInvalidMinecraftCertificates=true",
-					 "-Dfml.ignorePatchDiscrepancies=true"});
+		args.append(
+			{
+				"-Dfml.ignoreInvalidMinecraftCertificates=true",
+				"-Dfml.ignorePatchDiscrepancies=true"
+			}
+		);
 	}
-	return list;
-}
-
-QStringList MinecraftInstance::javaArguments() const
-{
-	QStringList args;
-
-	// custom args go first. we want to override them if we have our own here.
-	args.append(extraArguments());
 
 	// OSX dock icon and name
 #ifdef Q_OS_MAC
@@ -386,8 +354,8 @@ static QString replaceTokensIn(QString text, QMap<QString, QString> with)
 
 QStringList MinecraftInstance::processMinecraftArgs(AuthSessionPtr session) const
 {
-	QString args_pattern = m_profile->getMinecraftArguments();
-	for (auto tweaker : m_profile->getTweakers())
+	QString args_pattern = m_launch_profile->getMinecraftArguments();
+	for (auto tweaker : m_launch_profile->getTweakers())
 	{
 		args_pattern += " --tweakClass " + tweaker;
 	}
@@ -407,9 +375,9 @@ QStringList MinecraftInstance::processMinecraftArgs(AuthSessionPtr session) cons
 
 	// blatant self-promotion.
 	token_mapping["profile_name"] = token_mapping["version_name"] = "MultiMC5";
-	if(m_profile->isVanilla())
+	if(m_launch_profile->isVanilla())
 	{
-		token_mapping["version_type"] = m_profile->getMinecraftVersionType();
+		token_mapping["version_type"] = m_launch_profile->getMinecraftVersionType();
 	}
 	else
 	{
@@ -419,7 +387,7 @@ QStringList MinecraftInstance::processMinecraftArgs(AuthSessionPtr session) cons
 	QString absRootDir = QDir(minecraftRoot()).absolutePath();
 	token_mapping["game_directory"] = absRootDir;
 	QString absAssetsDir = QDir("assets/").absolutePath();
-	auto assets = m_profile->getMinecraftAssets();
+	auto assets = m_launch_profile->getMinecraftAssets();
 	// FIXME: this is wrong and should be run as an async task
 	token_mapping["game_assets"] = AssetsUtils::reconstructAssets(assets->id).absolutePath();
 
@@ -439,15 +407,15 @@ QString MinecraftInstance::createLaunchScript(AuthSessionPtr session)
 {
 	QString launchScript;
 
-	if (!m_profile)
-		return nullptr;
+	if (!m_launch_profile)
+		return QString();
 
-	auto mainClass = getMainClass();
+	auto mainClass = m_launch_profile->getMainClass();
 	if (!mainClass.isEmpty())
 	{
 		launchScript += "mainClass " + mainClass + "\n";
 	}
-	auto appletClass = m_profile->getAppletClass();
+	auto appletClass = m_launch_profile->getAppletClass();
 	if (!appletClass.isEmpty())
 	{
 		launchScript += "appletClass " + appletClass + "\n";
@@ -501,127 +469,6 @@ QString MinecraftInstance::createLaunchScript(AuthSessionPtr session)
 	}
 	launchScript += "launcher onesix\n";
 	return launchScript;
-}
-
-QStringList MinecraftInstance::verboseDescription(AuthSessionPtr session)
-{
-	QStringList out;
-	out << "Main Class:" << "  " + getMainClass() << "";
-	out << "Native path:" << "  " + getNativePath() << "";
-
-
-	auto alltraits = traits();
-	if(alltraits.size())
-	{
-		out << "Traits:";
-		for (auto trait : alltraits)
-		{
-			out << "traits " + trait;
-		}
-		out << "";
-	}
-
-	// libraries and class path.
-	{
-		out << "Libraries:";
-		QStringList jars, nativeJars;
-		auto javaArchitecture = settings()->get("JavaArchitecture").toString();
-		m_profile->getLibraryFiles(javaArchitecture, jars, nativeJars, getLocalLibraryPath(), binRoot());
-		auto printLibFile = [&](const QString & path)
-		{
-			QFileInfo info(path);
-			if(info.exists())
-			{
-				out << "  " + path;
-			}
-			else
-			{
-				out << "  " + path + " (missing)";
-			}
-		};
-		for(auto file: jars)
-		{
-			printLibFile(file);
-		}
-		out << "";
-		out << "Native libraries:";
-		for(auto file: nativeJars)
-		{
-			printLibFile(file);
-		}
-		out << "";
-	}
-
-	if(loaderModList()->size())
-	{
-		out << "Mods:";
-		for(auto & mod: loaderModList()->allMods())
-		{
-			if(!mod.enabled())
-				continue;
-			if(mod.type() == Mod::MOD_FOLDER)
-				continue;
-			// TODO: proper implementation would need to descend into folders.
-
-			out << "  " + mod.filename().completeBaseName();
-		}
-		out << "";
-	}
-
-	if(coreModList()->size())
-	{
-		out << "Core Mods:";
-		for(auto & coremod: coreModList()->allMods())
-		{
-			if(!coremod.enabled())
-				continue;
-			if(coremod.type() == Mod::MOD_FOLDER)
-				continue;
-			// TODO: proper implementation would need to descend into folders.
-
-			out << "  " + coremod.filename().completeBaseName();
-		}
-		out << "";
-	}
-
-	auto & jarMods = m_profile->getJarMods();
-	if(jarMods.size())
-	{
-		out << "Jar Mods:";
-		for(auto & jarmod: jarMods)
-		{
-			auto displayname = jarmod->displayName(currentSystem);
-			auto realname = jarmod->filename(currentSystem);
-			if(displayname != realname)
-			{
-				out << "  " + displayname + " (" + realname + ")";
-			}
-			else
-			{
-				out << "  " + realname;
-			}
-		}
-		out << "";
-	}
-
-	auto params = processMinecraftArgs(nullptr);
-	out << "Params:";
-	out << "  " + params.join(' ');
-	out << "";
-
-	QString windowParams;
-	if (settings()->get("LaunchMaximized").toBool())
-	{
-		out << "Window size: max (if available)";
-	}
-	else
-	{
-		auto width = settings()->get("MinecraftWinWidth").toInt();
-		auto height = settings()->get("MinecraftWinHeight").toInt();
-		out << "Window size: " + QString::number(width) + " x " + QString::number(height);
-	}
-	out << "";
-	return out;
 }
 
 QMap<QString, QString> MinecraftInstance::createCensorFilterFromSession(AuthSessionPtr session)
@@ -876,6 +723,11 @@ QString MinecraftInstance::launchMethod()
 	return m_settings->get("MCLaunchMethod").toString();
 }
 
+QString MinecraftInstance::getJavaArchitecture() const
+{
+	return settings()->get("JavaArchitecture").toString();
+}
+
 JavaVersion MinecraftInstance::getJavaVersion() const
 {
 	return JavaVersion(settings()->get("JavaVersion").toString());
@@ -899,10 +751,7 @@ bool MinecraftInstance::setComponentVersion(const QString& uid, const QString& v
 	{
 		settings()->set("LiteloaderVersion", version);
 	}
-	if(getComponentList())
-	{
-		clearProfile();
-	}
+	clearLaunchProfile();
 	emit propertiesChanged(this);
 	return true;
 }
@@ -926,6 +775,15 @@ QString MinecraftInstance::getComponentVersion(const QString& uid) const
 		return settings()->get("LiteloaderVersion").toString();
 	}
 	return QString();
+}
+
+std::shared_ptr<ComponentList> MinecraftInstance::componentList() const
+{
+	if (!m_component_list)
+	{
+		m_component_list.reset(new ComponentList(this));
+	}
+	return m_component_list;
 }
 
 std::shared_ptr<ModList> MinecraftInstance::loaderModList() const

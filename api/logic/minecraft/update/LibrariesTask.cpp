@@ -1,7 +1,7 @@
 #include "Env.h"
 #include "LibrariesTask.h"
 #include "minecraft/MinecraftInstance.h"
-#include "minecraft/ComponentList.h"
+#include "minecraft/LaunchProfile.h"
 
 LibrariesTask::LibrariesTask(MinecraftInstance * inst)
 {
@@ -13,7 +13,7 @@ void LibrariesTask::executeTask()
 	setStatus(tr("Getting the library files from Mojang..."));
 	qDebug() << m_inst->name() << ": downloading libraries";
 	MinecraftInstance *inst = (MinecraftInstance *)m_inst;
-	inst->reloadProfile();
+	inst->reloadLaunchProfile();
 	if(inst->hasVersionBroken())
 	{
 		emitFailed(tr("Failed to load the version description files - check the instance for errors."));
@@ -21,7 +21,12 @@ void LibrariesTask::executeTask()
 	}
 
 	// Build a list of URLs that will need to be downloaded.
-	std::shared_ptr<ComponentList> profile = inst->getComponentList();
+	auto profile = inst->getLaunchProfile();
+	if(!profile)
+	{
+		emitFailed(tr("Launch profile not ready."));
+		return;
+	}
 
 	auto job = new NetJob(tr("Libraries for instance %1").arg(inst->name()));
 	downloadJob.reset(job);

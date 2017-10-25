@@ -65,10 +65,4 @@ public:
 	{
 		return false;
 	}
-	QStringList verboseDescription(AuthSessionPtr session) override
-	{
-		QStringList out;
-		out << "Null instance - placeholder.";
-		return out;
-	}
 };

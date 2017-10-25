@@ -15,6 +15,7 @@
 
 #include "ExtractNatives.h"
 #include <minecraft/MinecraftInstance.h>
+#include <minecraft/LaunchProfile.h>
 #include <launch/LaunchTask.h>
 
 #include <quazip.h>
@@ -70,7 +71,17 @@ void ExtractNatives::executeTask()
 {
 	auto instance = m_parent->instance();
 	std::shared_ptr<MinecraftInstance> minecraftInstance = std::dynamic_pointer_cast<MinecraftInstance>(instance);
-	auto toExtract = minecraftInstance->getNativeJars();
+	auto profile = minecraftInstance->getLaunchProfile();
+	if(!profile)
+	{
+		emitFailed(tr("Launch profile not ready."));
+		return;
+	}
+	auto toExtract = profile->getNativeJars(
+		minecraftInstance->getJavaArchitecture(),
+		minecraftInstance->getLocalLibraryPath(),
+		minecraftInstance->binRoot()
+	);
 	if(toExtract.isEmpty())
 	{
 		emitSucceeded();

@@ -293,8 +293,8 @@ void InstanceImportTask::processFlame()
 			qDebug() << info.fileName();
 			jarMods.push_back(info.absoluteFilePath());
 		}
-		auto profile = instance.getComponentList();
-		profile->installJarMods(jarMods);
+		auto components = instance.componentList();
+		components->installJarMods(jarMods);
 		// nuke the original files
 		FS::deletePath(jarmodsPath);
 	}

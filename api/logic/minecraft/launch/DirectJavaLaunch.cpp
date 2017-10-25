@@ -16,6 +16,7 @@
 #include "DirectJavaLaunch.h"
 #include <launch/LaunchTask.h>
 #include <minecraft/MinecraftInstance.h>
+#include <minecraft/LaunchProfile.h>
 #include <FileSystem.h>
 #include <Commandline.h>
 #include <QStandardPaths>
@@ -31,10 +32,15 @@ void DirectJavaLaunch::executeTask()
 	auto instance = m_parent->instance();
 	std::shared_ptr<MinecraftInstance> minecraftInstance = std::dynamic_pointer_cast<MinecraftInstance>(instance);
 	QStringList args = minecraftInstance->javaArguments();
+	auto profile = minecraftInstance->getLaunchProfile();
 
 	args.append("-Djava.library.path=" + minecraftInstance->getNativePath());
 
-	auto classPathEntries = minecraftInstance->getClassPath();
+	auto classPathEntries = profile->getClassPath(
+		minecraftInstance->getJavaArchitecture(),
+		minecraftInstance->getLocalLibraryPath(),
+		minecraftInstance->binRoot()
+	);
 	args.append("-cp");
 	QString classpath;
 #ifdef Q_OS_WIN32
@@ -43,7 +49,7 @@ void DirectJavaLaunch::executeTask()
 	classpath = classPathEntries.join(':');
 #endif
 	args.append(classpath);
-	args.append(minecraftInstance->getMainClass());
+	args.append(profile->getMainClass());
 
 	QString allArgs = args.join(", ");
 	emit logLine("Java Arguments:\n[" + m_parent->censorPrivateInfo(allArgs) + "]\n\n", MessageLevel::MultiMC);

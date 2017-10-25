@@ -17,6 +17,7 @@
 #include <QCoreApplication>
 #include <launch/LaunchTask.h>
 #include <minecraft/MinecraftInstance.h>
+#include <minecraft/LaunchProfile.h>
 #include <FileSystem.h>
 #include <Commandline.h>
 #include <QStandardPaths>
@@ -58,6 +59,12 @@ void LauncherPartLaunch::executeTask()
 {
 	auto instance = m_parent->instance();
 	std::shared_ptr<MinecraftInstance> minecraftInstance = std::dynamic_pointer_cast<MinecraftInstance>(instance);
+	auto profile = minecraftInstance->getLaunchProfile();
+	if(!profile)
+	{
+		emitFailed(tr("Launch profile not ready."));
+		return;
+	}
 
 	m_launchScript = minecraftInstance->createLaunchScript(m_session);
 	QStringList args = minecraftInstance->javaArguments();
@@ -71,7 +78,11 @@ void LauncherPartLaunch::executeTask()
 	// make detachable - this will keep the process running even if the object is destroyed
 	m_process.setDetachable(true);
 
-	auto classPath = minecraftInstance->getClassPath();
+	auto classPath = profile->getClassPath(
+		minecraftInstance->getJavaArchitecture(),
+		minecraftInstance->getLocalLibraryPath(),
+		minecraftInstance->binRoot()
+	);
 	classPath.prepend(FS::PathCombine(ENV.getJarsPath(), "NewLaunch.jar"));
 
 	auto natPath = minecraftInstance->getNativePath();

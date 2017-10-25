@@ -52,11 +52,11 @@ OneSixUpdate::OneSixUpdate(MinecraftInstance *inst, QObject *parent) : Task(pare
 		 * We should not rely on the remote to be there... and prefer local files if it does not respond.
 		 */
 		qDebug() << "Updating patches...";
-		auto profile = m_inst->getComponentList();
-		m_inst->reloadProfile();
-		for(int i = 0; i < profile->rowCount(); i++)
+		auto componentList = m_inst->componentList();
+		m_inst->reloadLaunchProfile();
+		for(int i = 0; i < componentList->rowCount(); i++)
 		{
-			auto patch = profile->versionPatch(i);
+			auto patch = componentList->versionPatch(i);
 			auto id = patch->getID();
 			auto metadata = patch->getMeta();
 			if(metadata)

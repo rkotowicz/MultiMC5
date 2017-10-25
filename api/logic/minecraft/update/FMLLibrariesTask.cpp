@@ -3,7 +3,7 @@
 #include <minecraft/VersionFilterData.h>
 #include "FMLLibrariesTask.h"
 #include "minecraft/MinecraftInstance.h"
-#include "minecraft/ComponentList.h"
+#include "minecraft/LaunchProfile.h"
 
 FMLLibrariesTask::FMLLibrariesTask(MinecraftInstance * inst)
 {
@@ -13,7 +13,12 @@ void FMLLibrariesTask::executeTask()
 {
 	// Get the mod list
 	MinecraftInstance *inst = (MinecraftInstance *)m_inst;
-	std::shared_ptr<ComponentList> profile = inst->getComponentList();
+	auto profile = inst->getLaunchProfile();
+	if(!profile)
+	{
+		emitFailed(tr("Launch profile not ready."));
+		return;
+	}
 	bool forge_present = false;
 
 	if (!profile->hasTrait("legacyFML"))
@@ -32,6 +37,8 @@ void FMLLibrariesTask::executeTask()
 
 	auto &libList = fmlLibsMapping[version];
 
+	// FIXME: replace with something!!!?
+	/*
 	// determine if we need some libs for FML or forge
 	setStatus(tr("Checking for FML libraries..."));
 	forge_present = (profile->versionPatch("net.minecraftforge") != nullptr);
@@ -41,6 +48,7 @@ void FMLLibrariesTask::executeTask()
 		emitSucceeded();
 		return;
 	}
+	*/
 
 	// now check the lib folder inside the instance for files.
 	for (auto &lib : libList)
